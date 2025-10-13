@@ -1,0 +1,150 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 255 255 255;
+    --foreground: 0 0 0;
+  }
+
+  body {
+    @apply bg-white text-gray-900 antialiased;
+  }
+
+  * {
+    @apply border-gray-200;
+  }
+}
+
+@layer components {
+  /* Apple-style glassmorphism effect */
+  .glass {
+    @apply bg-white/80 backdrop-blur-xl border border-white/20;
+  }
+
+  .glass-dark {
+    @apply bg-gray-900/80 backdrop-blur-xl border border-gray-800/50;
+  }
+
+  /* Apple-style card */
+  .card-apple {
+    @apply bg-white rounded-2xl shadow-soft border border-gray-100 transition-all duration-300;
+  }
+
+  .card-apple:hover {
+    @apply shadow-soft-lg transform -translate-y-1;
+  }
+
+  /* Smooth gradient backgrounds */
+  .gradient-soft {
+    @apply bg-gradient-to-br from-white via-gray-50 to-gray-100;
+  }
+
+  .gradient-primary {
+    @apply bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50;
+  }
+
+  /* Apple-style button */
+  .btn-apple {
+    @apply px-6 py-3 rounded-2xl font-medium transition-all duration-200 shadow-soft;
+  }
+
+  .btn-apple-primary {
+    @apply btn-apple bg-blue-500 text-white hover:bg-blue-600 hover:shadow-lg;
+  }
+
+  .btn-apple-secondary {
+    @apply btn-apple bg-white text-gray-900 hover:bg-gray-50 border border-gray-200;
+  }
+
+  /* Smooth scrolling */
+  html {
+    @apply scroll-smooth;
+  }
+}
+
+/* Custom scrollbar - Apple style */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-gray-100 rounded-full;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 rounded-full hover:bg-gray-400;
+}
+
+/* Animations */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes pulse-slow {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 2s ease-in-out infinite;
+}
+
+/* Mobile Optimizations */
+@media (max-width: 640px) {
+  /* Reduce padding on mobile */
+  .container {
+    @apply px-3;
+  }
+
+  /* Smaller text on mobile */
+  h1 {
+    @apply text-2xl;
+  }
+
+  h2 {
+    @apply text-xl;
+  }
+
+  /* Stack items vertically on mobile */
+  .mobile-stack {
+    @apply flex-col;
+  }
+
+  /* Better touch targets */
+  button, a {
+    @apply min-h-[44px];
+  }
+
+  /* Hide less important elements on mobile */
+  .hide-mobile {
+    @apply hidden;
+  }
+
+  /* Adjust card padding for mobile */
+  .card-apple {
+    @apply p-4;
+  }
+}
+
+/* Tablet optimizations */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .hide-tablet {
+    @apply hidden;
+  }
+}
