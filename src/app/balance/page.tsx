@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import Card from '@/components/ui/Card'
@@ -51,47 +51,7 @@ export default function BalanceMonitorPage() {
   const [selectedYear, setSelectedYear] = useState(now.getFullYear())
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth())
 
-  useEffect(() => {
-    setMounted(true)
-    loadData()
-  }, [])
-
-  // Reload data when date filter changes
-  useEffect(() => {
-    if (mounted) {
-      loadData()
-    }
-  }, [selectedYear, selectedMonth])
-
-  useEffect(() => {
-    if (!mounted) return
-
-    const updateTime = () => {
-      const now = new Date()
-      setCurrentTime(now.toLocaleTimeString('ms-MY', {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-      }))
-    }
-    updateTime()
-    const interval = setInterval(updateTime, 1000)
-    return () => clearInterval(interval)
-  }, [mounted])
-
-  // Auto-refresh every 2 minutes
-  useEffect(() => {
-    if (!autoRefresh) return
-
-    const refreshInterval = setInterval(() => {
-      console.log('🔄 Auto-refreshing balance data...')
-      loadData()
-    }, 120000) // 2 minutes
-
-    return () => clearInterval(refreshInterval)
-  }, [autoRefresh])
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true)
     try {
       // Calculate date range based on selected month and year
@@ -134,7 +94,47 @@ export default function BalanceMonitorPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [selectedYear, selectedMonth])
+
+  useEffect(() => {
+    setMounted(true)
+    loadData()
+  }, [loadData])
+
+  // Reload data when date filter changes
+  useEffect(() => {
+    if (mounted) {
+      loadData()
+    }
+  }, [loadData, mounted])
+
+  useEffect(() => {
+    if (!mounted) return
+
+    const updateTime = () => {
+      const now = new Date()
+      setCurrentTime(now.toLocaleTimeString('ms-MY', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      }))
+    }
+    updateTime()
+    const interval = setInterval(updateTime, 1000)
+    return () => clearInterval(interval)
+  }, [mounted])
+
+  // Auto-refresh every 2 minutes
+  useEffect(() => {
+    if (!autoRefresh) return
+
+    const refreshInterval = setInterval(() => {
+      console.log('🔄 Auto-refreshing balance data...')
+      loadData()
+    }, 120000) // 2 minutes
+
+    return () => clearInterval(refreshInterval)
+  }, [autoRefresh, loadData])
 
   const calculateTeamBalances = (salesTeamData: SalesTeamData[], year: number, month: number) => {
     const now = new Date()

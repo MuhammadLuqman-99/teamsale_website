@@ -131,8 +131,7 @@ export default function TopPerformersChart({ salesTeamData }: TopPerformersChart
       x: {
         beginAtZero: true,
         grid: {
-          color: 'rgba(0, 0, 0, 0.05)',
-          drawBorder: false
+          color: 'rgba(0, 0, 0, 0.05)'
         },
         ticks: {
           font: {
@@ -152,7 +151,7 @@ export default function TopPerformersChart({ salesTeamData }: TopPerformersChart
           font: {
             family: 'Inter',
             size: 11,
-            weight: '600'
+            weight: 600
           },
           callback: function(value, index) {
             const label = this.getLabelForValue(value as number)

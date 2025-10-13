@@ -74,7 +74,7 @@ export default function LeadSourcesChart({ salesTeamData }: LeadSourcesChartProp
           font: {
             family: 'Inter',
             size: 12,
-            weight: '500'
+            weight: 500
           },
           padding: 15,
           usePointStyle: true,
@@ -86,9 +86,10 @@ export default function LeadSourcesChart({ salesTeamData }: LeadSourcesChartProp
                 const value = data.datasets[0].data[i] as number
                 const total = (data.datasets[0].data as number[]).reduce((a, b) => a + b, 0)
                 const percentage = ((value / total) * 100).toFixed(1)
+                const bgColors = data.datasets[0].backgroundColor as string[]
                 return {
                   text: `${label}: ${value} (${percentage}%)`,
-                  fillStyle: data.datasets[0].backgroundColor?.[i] as string,
+                  fillStyle: bgColors[i],
                   hidden: false,
                   index: i
                 }

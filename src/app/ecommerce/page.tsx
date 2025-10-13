@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
+import Script from 'next/script'
 import Card from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
@@ -425,8 +426,13 @@ export default function EcommercePage() {
       </main>
 
       {/* PDF.js Library */}
-      <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-      <script
+      <Script
+        src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"
+        strategy="afterInteractive"
+      />
+      <Script
+        id="pdfjs-config"
+        strategy="afterInteractive"
         dangerouslySetInnerHTML={{
           __html: `
             if (typeof pdfjsLib !== 'undefined') {

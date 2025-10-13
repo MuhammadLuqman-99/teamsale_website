@@ -93,7 +93,7 @@ export default function MarketingCostChart({ marketingData, orderData }: Marketi
           font: {
             family: 'Inter',
             size: 12,
-            weight: '500'
+            weight: 500
           },
           padding: 15,
           usePointStyle: true,
@@ -143,8 +143,7 @@ export default function MarketingCostChart({ marketingData, orderData }: Marketi
       y: {
         beginAtZero: true,
         grid: {
-          color: 'rgba(0, 0, 0, 0.05)',
-          drawBorder: false
+          color: 'rgba(0, 0, 0, 0.05)'
         },
         ticks: {
           font: {
@@ -164,7 +163,7 @@ export default function MarketingCostChart({ marketingData, orderData }: Marketi
           font: {
             family: 'Inter',
             size: 11,
-            weight: '500'
+            weight: 500
           }
         }
       }

@@ -353,9 +353,9 @@ export default function TeamMembersPage() {
               <div>
                 <h3 className="font-semibold text-blue-900 mb-1">Panduan Penggunaan</h3>
                 <ul className="text-sm text-blue-800 space-y-1">
-                  <li>• Tambah ahli team baru dengan klik butang "Tambah Ahli Baru"</li>
+                  <li>• Tambah ahli team baru dengan klik butang &ldquo;Tambah Ahli Baru&rdquo;</li>
                   <li>• Ahli team yang ditambah akan muncul dalam dropdown di borang Sales Team, Orders, dan lain-lain</li>
-                  <li>• Set status sebagai "Inactive" untuk ahli team yang tidak lagi aktif</li>
+                  <li>• Set status sebagai &ldquo;Inactive&rdquo; untuk ahli team yang tidak lagi aktif</li>
                 </ul>
               </div>
             </div>

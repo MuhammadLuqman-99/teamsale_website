@@ -86,7 +86,7 @@ export default function LeadPerformanceChart({ salesTeamData }: LeadPerformanceC
           font: {
             family: 'Inter',
             size: 12,
-            weight: '500'
+            weight: 500
           },
           padding: 15,
           usePointStyle: true,
@@ -122,8 +122,7 @@ export default function LeadPerformanceChart({ salesTeamData }: LeadPerformanceC
         beginAtZero: true,
         stacked: true,
         grid: {
-          color: 'rgba(0, 0, 0, 0.05)',
-          drawBorder: false
+          color: 'rgba(0, 0, 0, 0.05)'
         },
         ticks: {
           font: {
@@ -142,7 +141,7 @@ export default function LeadPerformanceChart({ salesTeamData }: LeadPerformanceC
           font: {
             family: 'Inter',
             size: 11,
-            weight: '500'
+            weight: 500
           }
         }
       }
