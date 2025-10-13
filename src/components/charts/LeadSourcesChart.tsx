@@ -9,24 +9,26 @@ import {
   ChartOptions
 } from 'chart.js'
 import { Doughnut } from 'react-chartjs-2'
-import { MarketingData } from '@/lib/firestore'
+import { SalesTeamData } from '@/lib/firestore'
 
 ChartJS.register(ArcElement, Tooltip, Legend)
 
 interface LeadSourcesChartProps {
-  marketingData: MarketingData[]
+  salesTeamData: SalesTeamData[]
 }
 
-export default function LeadSourcesChart({ marketingData }: LeadSourcesChartProps) {
+export default function LeadSourcesChart({ salesTeamData }: LeadSourcesChartProps) {
   const chartRef = useRef<ChartJS<'doughnut'>>(null)
 
-  // Group data by team (as source)
-  const sourceData = marketingData.reduce((acc, item) => {
-    const source = item.team_sale || 'Unknown'
+  // Filter only power_metrics data and group by team
+  const powerMetricsData = salesTeamData.filter(item => item.type === 'power_metrics')
+
+  const sourceData = powerMetricsData.reduce((acc, item) => {
+    const source = item.agent_name || item.team || 'Unknown'
     if (!acc[source]) {
       acc[source] = 0
     }
-    acc[source] += item.jumlah_leads || 0
+    acc[source] += item.total_lead_bulan || 0
     return acc
   }, {} as Record<string, number>)
 

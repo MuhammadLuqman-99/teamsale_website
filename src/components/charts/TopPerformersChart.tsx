@@ -12,7 +12,7 @@ import {
   ChartOptions
 } from 'chart.js'
 import { Bar } from 'react-chartjs-2'
-import { OrderData } from '@/lib/firestore'
+import { SalesTeamData } from '@/lib/firestore'
 
 ChartJS.register(
   CategoryScale,
@@ -24,25 +24,29 @@ ChartJS.register(
 )
 
 interface TopPerformersChartProps {
-  orderData: OrderData[]
+  salesTeamData: SalesTeamData[]
 }
 
-export default function TopPerformersChart({ orderData }: TopPerformersChartProps) {
+export default function TopPerformersChart({ salesTeamData }: TopPerformersChartProps) {
   const chartRef = useRef<ChartJS<'bar'>>(null)
 
-  // Group data by team and calculate sales
-  const teamSales = orderData.reduce((acc, order) => {
-    const team = order.team_sale || 'Unknown'
+  // Filter only power_metrics data and group by team
+  const powerMetricsData = salesTeamData.filter(item => item.type === 'power_metrics')
+
+  const teamSales = powerMetricsData.reduce((acc, item) => {
+    const team = item.agent_name || item.team || 'Unknown'
     if (!acc[team]) {
       acc[team] = {
         sales: 0,
-        orders: 0
+        close: 0,
+        leads: 0
       }
     }
-    acc[team].sales += order.total_rm || 0
-    acc[team].orders += 1
+    acc[team].sales += item.total_sale_bulan || 0
+    acc[team].close += item.total_close_bulan || 0
+    acc[team].leads += item.total_lead_bulan || 0
     return acc
-  }, {} as Record<string, { sales: number; orders: number }>)
+  }, {} as Record<string, { sales: number; close: number; leads: number }>)
 
   // Sort by sales and get top performers
   const sortedTeams = Object.entries(teamSales)
@@ -51,7 +55,8 @@ export default function TopPerformersChart({ orderData }: TopPerformersChartProp
 
   const teams = sortedTeams.map(([team]) => team)
   const sales = sortedTeams.map(([, data]) => data.sales)
-  const orders = sortedTeams.map(([, data]) => data.orders)
+  const close = sortedTeams.map(([, data]) => data.close)
+  const leads = sortedTeams.map(([, data]) => data.leads)
 
   // Generate gradient colors based on ranking
   const backgroundColors = sales.map((_, index) => {
@@ -110,14 +115,13 @@ export default function TopPerformersChart({ orderData }: TopPerformersChartProp
           },
           afterLabel: function(context) {
             const teamIndex = context.dataIndex
-            const orderCount = orders[teamIndex]
-            const avgOrder = sales[teamIndex] / orderCount
+            const closeCount = close[teamIndex]
+            const leadCount = leads[teamIndex]
+            const conversionRate = leadCount > 0 ? ((closeCount / leadCount) * 100).toFixed(1) : '0.0'
             return [
-              `Orders: ${orderCount}`,
-              `Avg: RM ${avgOrder.toLocaleString('ms-MY', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-              })}`
+              `Close: ${closeCount}`,
+              `Leads: ${leadCount}`,
+              `Conversion: ${conversionRate}%`
             ]
           }
         }

@@ -30,54 +30,46 @@ interface LeadPerformanceChartProps {
 export default function LeadPerformanceChart({ salesTeamData }: LeadPerformanceChartProps) {
   const chartRef = useRef<ChartJS<'bar'>>(null)
 
-  // Group data by team
-  const teamData = salesTeamData.reduce((acc, item) => {
-    const team = item.team_sale || 'Unknown'
+  // Filter only power_metrics data and group by team
+  const powerMetricsData = salesTeamData.filter(item => item.type === 'power_metrics')
+
+  const teamData = powerMetricsData.reduce((acc, item) => {
+    const team = item.agent_name || item.team || 'Unknown'
     if (!acc[team]) {
       acc[team] = {
-        cold: 0,
-        warm: 0,
-        hot: 0,
-        total: 0
+        totalLeads: 0,
+        totalSales: 0,
+        totalClose: 0
       }
     }
-    acc[team].cold += item.cold_lead || 0
-    acc[team].warm += item.warm_lead || 0
-    acc[team].hot += item.hot_lead || 0
-    acc[team].total += item.jumlah_leads || 0
+    // Use power metrics data
+    acc[team].totalLeads += item.total_lead_bulan || 0
+    acc[team].totalSales += item.total_sale_bulan || 0
+    acc[team].totalClose += item.total_close_bulan || 0
     return acc
-  }, {} as Record<string, { cold: number; warm: number; hot: number; total: number }>)
+  }, {} as Record<string, { totalLeads: number; totalSales: number; totalClose: number }>)
 
   // Prepare chart data
   const teams = Object.keys(teamData).sort()
-  const coldLeads = teams.map(team => teamData[team].cold)
-  const warmLeads = teams.map(team => teamData[team].warm)
-  const hotLeads = teams.map(team => teamData[team].hot)
+  const totalLeads = teams.map(team => teamData[team].totalLeads)
+  const totalClose = teams.map(team => teamData[team].totalClose)
 
   const data = {
     labels: teams,
     datasets: [
       {
-        label: 'Cold Leads',
-        data: coldLeads,
+        label: 'Total Leads',
+        data: totalLeads,
         backgroundColor: 'rgba(59, 130, 246, 0.8)',
         borderColor: 'rgba(59, 130, 246, 1)',
         borderWidth: 2,
         borderRadius: 8
       },
       {
-        label: 'Warm Leads',
-        data: warmLeads,
-        backgroundColor: 'rgba(251, 191, 36, 0.8)',
-        borderColor: 'rgba(251, 191, 36, 1)',
-        borderWidth: 2,
-        borderRadius: 8
-      },
-      {
-        label: 'Hot Leads',
-        data: hotLeads,
-        backgroundColor: 'rgba(239, 68, 68, 0.8)',
-        borderColor: 'rgba(239, 68, 68, 1)',
+        label: 'Total Close',
+        data: totalClose,
+        backgroundColor: 'rgba(16, 185, 129, 0.8)',
+        borderColor: 'rgba(16, 185, 129, 1)',
         borderWidth: 2,
         borderRadius: 8
       }
@@ -119,8 +111,8 @@ export default function LeadPerformanceChart({ salesTeamData }: LeadPerformanceC
           footer: function(tooltipItems) {
             const teamIndex = tooltipItems[0].dataIndex
             const team = teams[teamIndex]
-            const total = teamData[team].total
-            return `Total: ${total} leads`
+            const sales = teamData[team].totalSales
+            return `Sales: RM ${sales.toLocaleString()}`
           }
         }
       }
