@@ -151,9 +151,13 @@ export default function BalanceMonitorPage() {
       powerMetricsCount: salesTeamData.filter(d => d.type === 'power_metrics').length
     })
 
-    // Filter power_metrics for selected month
+    // Filter power_metrics for selected month and exclude TikTok team
     const powerMetricsData = salesTeamData.filter(item => {
       if (item.type !== 'power_metrics') return false
+
+      // Exclude TikTok team
+      const teamName = (item.agent_name || item.team || '').toLowerCase()
+      if (teamName.includes('tiktok')) return false
 
       // Parse date string directly (YYYY-MM-DD format)
       const dateParts = item.tarikh.split('-')
@@ -384,87 +388,70 @@ export default function BalanceMonitorPage() {
                 </Link>
               </Card>
             ) : (
-              <div className="space-y-4">
-                {teamBalances.map((team, index) => (
-                  <motion.div
-                    key={team.teamName}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                  >
-                    <Card className="p-6 hover:shadow-lg transition-shadow">
-                      {/* Team Header */}
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center">
-                            <span className="text-white font-bold text-lg">
-                              {team.teamName.charAt(0).toUpperCase()}
-                            </span>
-                          </div>
-                          <div>
-                            <h3 className="text-xl font-bold text-gray-900">{team.teamName}</h3>
-                            <p className="text-sm text-gray-600">Target: {formatCurrency(team.target)}</p>
-                          </div>
-                        </div>
-                        <div className={`px-4 py-2 rounded-xl bg-gradient-to-r ${getProgressColor(team.progress)}`}>
-                          <span className="text-white font-bold">{team.progress.toFixed(1)}%</span>
-                        </div>
-                      </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {teamBalances.map((team, index) => {
+                  // Color scheme for each team
+                  const teamColors = [
+                    { name: 'from-red-500 to-red-600', text: 'text-red-400', bg: 'bg-gradient-to-br from-gray-900 to-gray-800' },
+                    { name: 'from-green-500 to-green-600', text: 'text-green-400', bg: 'bg-gradient-to-br from-gray-900 to-gray-800' },
+                    { name: 'from-yellow-500 to-yellow-600', text: 'text-yellow-400', bg: 'bg-gradient-to-br from-gray-900 to-gray-800' },
+                    { name: 'from-purple-500 to-purple-600', text: 'text-purple-400', bg: 'bg-gradient-to-br from-gray-900 to-gray-800' },
+                  ]
+                  const colorScheme = teamColors[index % teamColors.length]
 
-                      {/* Metrics Grid */}
-                      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
-                        <div className="bg-gray-50 rounded-xl p-4">
-                          <p className="text-xs text-gray-600 mb-1">KPI MTD</p>
-                          <p className="text-lg font-bold text-gray-900">{formatCurrency(team.kpiMTD)}</p>
+                  return (
+                    <motion.div
+                      key={team.teamName}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: index * 0.1 }}
+                      className="relative"
+                    >
+                      <Card className={`${colorScheme.bg} border-2 border-teal-500/30 p-8 hover:shadow-2xl transition-all min-h-[400px] flex flex-col`}>
+                        {/* Glow indicator */}
+                        <div className="absolute top-4 right-4 w-3 h-3 bg-teal-500 rounded-full animate-pulse shadow-lg shadow-teal-500/50"></div>
+
+                        {/* Team Name - Large */}
+                        <div className="text-center mb-6">
+                          <h2 className={`text-5xl md:text-6xl font-black ${colorScheme.text} tracking-tight uppercase`}>
+                            {team.teamName}
+                          </h2>
+                          <p className="text-gray-400 text-sm mt-2">Sales Team</p>
                         </div>
-                        <div className="bg-green-50 rounded-xl p-4">
-                          <p className="text-xs text-gray-600 mb-1">Sales</p>
-                          <p className="text-lg font-bold text-green-600">{formatCurrency(team.sales)}</p>
-                        </div>
-                        <div className={`rounded-xl p-4 ${team.balance > 0 ? 'bg-red-50' : 'bg-green-50'}`}>
-                          <p className="text-xs text-gray-600 mb-1">Balance</p>
-                          <p className={`text-lg font-bold ${team.balance > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                            {formatCurrency(Math.abs(team.balance))}
+
+                        {/* Sale MTD - Main Display */}
+                        <div className="text-center mb-8 flex-grow flex flex-col justify-center">
+                          <p className="text-gray-400 text-sm mb-2">Sale MTD</p>
+                          <p className="text-4xl md:text-5xl font-bold text-white mb-1">
+                            RM {team.sales.toLocaleString('ms-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </p>
                         </div>
-                        <div className="bg-blue-50 rounded-xl p-4">
-                          <p className="text-xs text-gray-600 mb-1">Close Rate</p>
-                          <p className="text-lg font-bold text-blue-600">{team.closeRate.toFixed(1)}%</p>
-                        </div>
-                        <div className="bg-purple-50 rounded-xl p-4">
-                          <p className="text-xs text-gray-600 mb-1">Closes</p>
-                          <p className="text-lg font-bold text-purple-600">{team.closes} / {team.leads}</p>
-                        </div>
-                      </div>
 
-                      {/* Progress Bar */}
-                      <div className="mb-3">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium text-gray-700">Progress Bulanan</span>
-                          <span className="text-sm text-gray-600">
-                            {formatCurrency(team.sales)} / {formatCurrency(team.target)}
-                          </span>
+                        {/* Bottom Metrics */}
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700/50">
+                            <p className="text-gray-400 text-xs mb-1">KPI Harian</p>
+                            <p className="text-xl font-bold text-white">
+                              {formatCurrency(team.kpiMTD / powerMetrics.workingDaysCurrent || 0)}
+                            </p>
+                          </div>
+                          <div className={`rounded-xl p-4 border ${
+                            team.balanceMTD > 0
+                              ? 'bg-red-500/10 border-red-500/30'
+                              : 'bg-green-500/10 border-green-500/30'
+                          }`}>
+                            <p className="text-gray-400 text-xs mb-1">Balance MTD</p>
+                            <p className={`text-xl font-bold ${
+                              team.balanceMTD > 0 ? 'text-red-400' : 'text-green-400'
+                            }`}>
+                              {formatCurrency(Math.abs(team.balanceMTD))}
+                            </p>
+                          </div>
                         </div>
-                        <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
-                          <motion.div
-                            className={`h-full bg-gradient-to-r ${getProgressColor(team.progress)}`}
-                            initial={{ width: 0 }}
-                            animate={{ width: `${Math.min(team.progress, 100)}%` }}
-                            transition={{ duration: 1, ease: 'easeOut', delay: index * 0.1 }}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Balance MTD */}
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-600">Balance MTD:</span>
-                        <span className={`font-semibold ${team.balanceMTD > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                          {formatCurrency(Math.abs(team.balanceMTD))} {team.balanceMTD > 0 ? '(Behind)' : '(Ahead)'}
-                        </span>
-                      </div>
-                    </Card>
-                  </motion.div>
-                ))}
+                      </Card>
+                    </motion.div>
+                  )
+                })}
               </div>
             )}
 
