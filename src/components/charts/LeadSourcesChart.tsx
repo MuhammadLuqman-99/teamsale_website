@@ -28,14 +28,12 @@ export default function LeadSourcesChart({ salesTeamData }: LeadSourcesChartProp
   powerMetricsData.forEach(item => {
     const source = item.agent_name || item.team || 'Unknown'
 
-    // Keep only the latest entry (by date, then by time if available)
+    // Keep only the latest entry (by date)
     if (!teamLatestData[source] || teamLatestData[source].tarikh < item.tarikh) {
       teamLatestData[source] = item
     } else if (teamLatestData[source].tarikh === item.tarikh) {
-      // Same date, check time
-      if (item.masa && teamLatestData[source].masa && item.masa > teamLatestData[source].masa) {
-        teamLatestData[source] = item
-      }
+      // Same date, keep the last one processed (should be latest from Firebase)
+      teamLatestData[source] = item
     }
   })
 

@@ -50,13 +50,8 @@ export default function SalesTrendChart({ salesTeamData, chartType = 'area' }: S
       }
 
       // Keep only the latest entry for same team on same date
-      // Since power_metrics includes time (masa), we can compare the full entry
-      if (!groupedByDateTeam[date][team] || (item.masa && groupedByDateTeam[date][team].masa && item.masa > groupedByDateTeam[date][team].masa)) {
-        groupedByDateTeam[date][team] = item
-      } else if (!item.masa && !groupedByDateTeam[date][team].masa) {
-        // If no time info, just keep the last one processed (should be latest from Firebase)
-        groupedByDateTeam[date][team] = item
-      }
+      // Since we can't reliably compare time, keep the last one processed (should be latest from Firebase)
+      groupedByDateTeam[date][team] = item
     })
 
     // Convert to simple date -> team -> sales mapping

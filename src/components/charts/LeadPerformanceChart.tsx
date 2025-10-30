@@ -38,14 +38,12 @@ export default function LeadPerformanceChart({ salesTeamData }: LeadPerformanceC
   powerMetricsData.forEach(item => {
     const team = item.agent_name || item.team || 'Unknown'
 
-    // Keep only the latest entry (by date, then by time if available)
+    // Keep only the latest entry (by date)
     if (!teamLatestData[team] || teamLatestData[team].tarikh < item.tarikh) {
       teamLatestData[team] = item
     } else if (teamLatestData[team].tarikh === item.tarikh) {
-      // Same date, check time
-      if (item.masa && teamLatestData[team].masa && item.masa > teamLatestData[team].masa) {
-        teamLatestData[team] = item
-      }
+      // Same date, keep the last one processed (should be latest from Firebase)
+      teamLatestData[team] = item
     }
   })
 
