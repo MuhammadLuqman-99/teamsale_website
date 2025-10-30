@@ -247,29 +247,9 @@ export default function BalanceMonitorPage() {
   }
 
   return (
-    <div className="min-h-screen gradient-soft">
-      {/* Navigation */}
-      <nav className="glass sticky top-0 z-50 border-b border-gray-200/50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-red-500 rounded-2xl flex items-center justify-center shadow-soft">
-                <span className="text-white font-bold text-lg">📊</span>
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-gray-900">Balance Monitor</h2>
-                <span className="text-xs text-gray-600">Track Setiap Team Sale</span>
-              </div>
-            </Link>
-            <Link href="/dashboard">
-              <Button variant="secondary" size="sm">← Dashboard</Button>
-            </Link>
-          </div>
-        </div>
-      </nav>
-
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">
+      {/* Main Content - Fullscreen */}
+      <main className="h-screen w-screen p-6 flex items-center justify-center">
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
@@ -288,7 +268,7 @@ export default function BalanceMonitorPage() {
                 </Link>
               </Card>
             ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full max-w-[1800px]">
                 {teamBalances.map((team, index) => {
                   // Color scheme for each team
                   const teamColors = [
@@ -307,7 +287,7 @@ export default function BalanceMonitorPage() {
                       transition={{ delay: index * 0.1 }}
                       className="relative"
                     >
-                      <Card className={`${colorScheme.bg} border-2 border-teal-500/30 p-12 hover:shadow-2xl transition-all min-h-[500px] flex flex-col`}>
+                      <Card className={`${colorScheme.bg} border-2 border-teal-500/30 p-12 hover:shadow-2xl transition-all h-full flex flex-col`}>
                         {/* Glow indicator */}
                         <div className="absolute top-6 right-6 w-4 h-4 bg-teal-500 rounded-full animate-pulse shadow-lg shadow-teal-500/50"></div>
 
