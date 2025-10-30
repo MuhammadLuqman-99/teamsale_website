@@ -276,106 +276,6 @@ export default function BalanceMonitorPage() {
           </div>
         ) : (
           <>
-            {/* Header Summary */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mb-8"
-            >
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                <Card className="p-6 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-                  <h3 className="text-sm font-medium text-gray-600 mb-2">Total Teams</h3>
-                  <p className="text-3xl font-bold text-gray-900">{teamBalances.length}</p>
-                </Card>
-                <Card className="p-6 bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-                  <h3 className="text-sm font-medium text-gray-600 mb-2">Total Target</h3>
-                  <p className="text-3xl font-bold text-gray-900">{formatCurrency(powerMetrics.totalMonthlyTarget)}</p>
-                </Card>
-                <Card className="p-6 bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-                  <h3 className="text-sm font-medium text-gray-600 mb-2">Total Sales</h3>
-                  <p className="text-3xl font-bold text-gray-900">{formatCurrency(powerMetrics.saleMTD)}</p>
-                </Card>
-                <Card className="p-6 bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-                  <h3 className="text-sm font-medium text-gray-600 mb-2">Total Balance</h3>
-                  <p className="text-3xl font-bold text-gray-900">{formatCurrency(powerMetrics.balanceBulanan)}</p>
-                </Card>
-              </div>
-
-              {/* Date Filter */}
-              <Card className="p-4 mb-6 bg-gradient-to-r from-indigo-50 to-blue-50 border-indigo-200">
-                <div className="flex items-center gap-4 flex-wrap">
-                  <div className="flex items-center gap-2">
-                    <label className="text-sm font-medium text-gray-700">📅 Bulan:</label>
-                    <select
-                      value={selectedMonth}
-                      onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                      className="px-4 py-2 rounded-xl border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value={0}>Januari</option>
-                      <option value={1}>Februari</option>
-                      <option value={2}>Mac</option>
-                      <option value={3}>April</option>
-                      <option value={4}>Mei</option>
-                      <option value={5}>Jun</option>
-                      <option value={6}>Julai</option>
-                      <option value={7}>Ogos</option>
-                      <option value={8}>September</option>
-                      <option value={9}>Oktober</option>
-                      <option value={10}>November</option>
-                      <option value={11}>Disember</option>
-                    </select>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <label className="text-sm font-medium text-gray-700">📆 Tahun:</label>
-                    <select
-                      value={selectedYear}
-                      onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                      className="px-4 py-2 rounded-xl border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      {Array.from({ length: 10 }, (_, i) => now.getFullYear() - i).map(year => (
-                        <option key={year} value={year}>{year}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <button
-                    onClick={() => {
-                      setSelectedYear(now.getFullYear())
-                      setSelectedMonth(now.getMonth())
-                    }}
-                    className="px-4 py-2 bg-indigo-500 text-white rounded-xl hover:bg-indigo-600 transition-colors"
-                  >
-                    Bulan Ini
-                  </button>
-                </div>
-              </Card>
-
-              {/* Controls */}
-              <div className="flex items-center justify-between mb-4">
-                <h1 className="text-2xl font-bold text-gray-900">Balance Setiap Team</h1>
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => setAutoRefresh(!autoRefresh)}
-                    className={`px-4 py-2 rounded-xl transition-colors ${
-                      autoRefresh
-                        ? 'bg-green-500 text-white'
-                        : 'bg-gray-200 text-gray-700'
-                    }`}
-                  >
-                    {autoRefresh ? '✓ Auto ON' : 'Auto OFF'}
-                  </button>
-                  <button
-                    onClick={loadData}
-                    disabled={loading}
-                    className="px-4 py-2 bg-blue-500 text-white rounded-xl hover:bg-blue-600"
-                  >
-                    🔄 Refresh
-                  </button>
-                  <div className="text-sm text-gray-600">
-                    {mounted ? currentTime : '--:--:--'}
-                  </div>
-                </div>
-              </div>
-            </motion.div>
 
             {/* Team Balance Cards */}
             {teamBalances.length === 0 ? (
@@ -407,41 +307,41 @@ export default function BalanceMonitorPage() {
                       transition={{ delay: index * 0.1 }}
                       className="relative"
                     >
-                      <Card className={`${colorScheme.bg} border-2 border-teal-500/30 p-8 hover:shadow-2xl transition-all min-h-[400px] flex flex-col`}>
+                      <Card className={`${colorScheme.bg} border-2 border-teal-500/30 p-12 hover:shadow-2xl transition-all min-h-[500px] flex flex-col`}>
                         {/* Glow indicator */}
-                        <div className="absolute top-4 right-4 w-3 h-3 bg-teal-500 rounded-full animate-pulse shadow-lg shadow-teal-500/50"></div>
+                        <div className="absolute top-6 right-6 w-4 h-4 bg-teal-500 rounded-full animate-pulse shadow-lg shadow-teal-500/50"></div>
 
-                        {/* Team Name - Large */}
-                        <div className="text-center mb-6">
-                          <h2 className={`text-5xl md:text-6xl font-black ${colorScheme.text} tracking-tight uppercase`}>
+                        {/* Team Name - Extra Large */}
+                        <div className="text-center mb-8">
+                          <h2 className={`text-7xl md:text-8xl font-black ${colorScheme.text} tracking-tight uppercase`}>
                             {team.teamName}
                           </h2>
-                          <p className="text-gray-400 text-sm mt-2">Sales Team</p>
+                          <p className="text-gray-400 text-lg mt-3">Sales Team</p>
                         </div>
 
-                        {/* Sale MTD - Main Display */}
-                        <div className="text-center mb-8 flex-grow flex flex-col justify-center">
-                          <p className="text-gray-400 text-sm mb-2">Sale MTD</p>
-                          <p className="text-4xl md:text-5xl font-bold text-white mb-1">
+                        {/* Sale MTD - Extra Large Display */}
+                        <div className="text-center mb-10 flex-grow flex flex-col justify-center">
+                          <p className="text-gray-400 text-xl mb-4">Sale MTD</p>
+                          <p className="text-6xl md:text-7xl font-bold text-white mb-2">
                             RM {team.sales.toLocaleString('ms-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </p>
                         </div>
 
-                        {/* Bottom Metrics */}
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700/50">
-                            <p className="text-gray-400 text-xs mb-1">KPI Harian</p>
-                            <p className="text-xl font-bold text-white">
+                        {/* Bottom Metrics - Larger */}
+                        <div className="grid grid-cols-2 gap-6">
+                          <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700/50">
+                            <p className="text-gray-400 text-sm mb-2">KPI Harian</p>
+                            <p className="text-3xl font-bold text-white">
                               {formatCurrency(team.kpiMTD / powerMetrics.workingDaysCurrent || 0)}
                             </p>
                           </div>
-                          <div className={`rounded-xl p-4 border ${
+                          <div className={`rounded-xl p-6 border ${
                             team.balanceMTD > 0
                               ? 'bg-red-500/10 border-red-500/30'
                               : 'bg-green-500/10 border-green-500/30'
                           }`}>
-                            <p className="text-gray-400 text-xs mb-1">Balance MTD</p>
-                            <p className={`text-xl font-bold ${
+                            <p className="text-gray-400 text-sm mb-2">Balance MTD</p>
+                            <p className={`text-3xl font-bold ${
                               team.balanceMTD > 0 ? 'text-red-400' : 'text-green-400'
                             }`}>
                               {formatCurrency(Math.abs(team.balanceMTD))}
@@ -455,39 +355,6 @@ export default function BalanceMonitorPage() {
               </div>
             )}
 
-            {/* Working Days Info */}
-            {teamBalances.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6 }}
-                className="mt-8"
-              >
-                <Card className="p-6 bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-200">
-                  <h3 className="text-lg font-bold text-gray-900 mb-4">Maklumat Hari Kerja</h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="text-center">
-                      <div className="text-3xl font-bold text-indigo-600">{powerMetrics.workingDaysTotal}</div>
-                      <p className="text-sm text-gray-600 mt-1">Total Hari Kerja</p>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-3xl font-bold text-green-600">{powerMetrics.workingDaysCurrent}</div>
-                      <p className="text-sm text-gray-600 mt-1">Hari Berlalu</p>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-3xl font-bold text-orange-600">
-                        {powerMetrics.workingDaysTotal - powerMetrics.workingDaysCurrent}
-                      </div>
-                      <p className="text-sm text-gray-600 mt-1">Hari Berbaki</p>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-3xl font-bold text-purple-600">{formatCurrency(powerMetrics.kpiHarian)}</div>
-                      <p className="text-sm text-gray-600 mt-1">KPI Harian (per team)</p>
-                    </div>
-                  </div>
-                </Card>
-              </motion.div>
-            )}
           </>
         )}
       </main>

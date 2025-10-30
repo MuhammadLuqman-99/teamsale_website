@@ -28,7 +28,7 @@ export interface DashboardStats {
 
 const MONTHLY_TARGET = 15000;
 
-// Calculate working days in a month (exclude weekends)
+// Calculate working days in a month (exclude Friday only)
 export function calculateWorkingDays(year: number, month: number): number {
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   let workingDays = 0;
@@ -36,8 +36,8 @@ export function calculateWorkingDays(year: number, month: number): number {
   for (let day = 1; day <= daysInMonth; day++) {
     const date = new Date(year, month, day);
     const dayOfWeek = date.getDay();
-    // Exclude Saturday (6) and Sunday (0)
-    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+    // Exclude Friday (5) only - Saturday (6) and Sunday (0) are working days
+    if (dayOfWeek !== 5) {
       workingDays++;
     }
   }
@@ -52,7 +52,8 @@ export function getCurrentWorkingDay(year: number, month: number, currentDay: nu
   for (let day = 1; day <= currentDay; day++) {
     const date = new Date(year, month, day);
     const dayOfWeek = date.getDay();
-    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+    // Exclude Friday (5) only - Saturday (6) and Sunday (0) are working days
+    if (dayOfWeek !== 5) {
       workingDay++;
     }
   }
