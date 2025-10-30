@@ -30,22 +30,32 @@ interface LeadPerformanceChartProps {
 export default function LeadPerformanceChart({ salesTeamData }: LeadPerformanceChartProps) {
   const chartRef = useRef<ChartJS<'bar'>>(null)
 
-  // Filter only power_metrics data and group by team
+  // Filter only power_metrics data and get latest entry per team
   const powerMetricsData = salesTeamData.filter(item => item.type === 'power_metrics')
 
-  const teamData = powerMetricsData.reduce((acc, item) => {
+  // Group by team and keep only latest entry
+  const teamLatestData: Record<string, SalesTeamData> = {}
+  powerMetricsData.forEach(item => {
     const team = item.agent_name || item.team || 'Unknown'
-    if (!acc[team]) {
-      acc[team] = {
-        totalLeads: 0,
-        totalSales: 0,
-        totalClose: 0
+
+    // Keep only the latest entry (by date, then by time if available)
+    if (!teamLatestData[team] || teamLatestData[team].tarikh < item.tarikh) {
+      teamLatestData[team] = item
+    } else if (teamLatestData[team].tarikh === item.tarikh) {
+      // Same date, check time
+      if (item.masa && teamLatestData[team].masa && item.masa > teamLatestData[team].masa) {
+        teamLatestData[team] = item
       }
     }
-    // Use power metrics data
-    acc[team].totalLeads += item.total_lead_bulan || 0
-    acc[team].totalSales += item.total_sale_bulan || 0
-    acc[team].totalClose += item.total_close_bulan || 0
+  })
+
+  // Convert to chart data
+  const teamData = Object.entries(teamLatestData).reduce((acc, [team, item]) => {
+    acc[team] = {
+      totalLeads: item.total_lead_bulan || 0,
+      totalSales: item.total_sale_bulan || 0,
+      totalClose: item.total_close_bulan || 0
+    }
     return acc
   }, {} as Record<string, { totalLeads: number; totalSales: number; totalClose: number }>)
 

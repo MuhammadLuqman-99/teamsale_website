@@ -38,23 +38,34 @@ export default function SalesTrendChart({ salesTeamData, chartType = 'area' }: S
       return []
     }
 
-    // Group by date and team
-    const groupedByDate: { [key: string]: { [team: string]: number } } = {}
+    // Group by date and team - keep only latest entry per day per team
+    const groupedByDateTeam: { [key: string]: { [team: string]: SalesTeamData } } = {}
 
     powerMetrics.forEach(item => {
       const date = item.tarikh
       const team = item.agent_name || item.team || 'Unknown'
-      const sales = item.total_sale_bulan || 0
 
-      if (!groupedByDate[date]) {
-        groupedByDate[date] = {}
+      if (!groupedByDateTeam[date]) {
+        groupedByDateTeam[date] = {}
       }
 
-      // Sum up sales for same team on same date
-      if (!groupedByDate[date][team]) {
-        groupedByDate[date][team] = 0
+      // Keep only the latest entry for same team on same date
+      // Since power_metrics includes time (masa), we can compare the full entry
+      if (!groupedByDateTeam[date][team] || (item.masa && groupedByDateTeam[date][team].masa && item.masa > groupedByDateTeam[date][team].masa)) {
+        groupedByDateTeam[date][team] = item
+      } else if (!item.masa && !groupedByDateTeam[date][team].masa) {
+        // If no time info, just keep the last one processed (should be latest from Firebase)
+        groupedByDateTeam[date][team] = item
       }
-      groupedByDate[date][team] += sales
+    })
+
+    // Convert to simple date -> team -> sales mapping
+    const groupedByDate: { [key: string]: { [team: string]: number } } = {}
+    Object.keys(groupedByDateTeam).forEach(date => {
+      groupedByDate[date] = {}
+      Object.keys(groupedByDateTeam[date]).forEach(team => {
+        groupedByDate[date][team] = groupedByDateTeam[date][team].total_sale_bulan || 0
+      })
     })
 
     // Get all unique teams

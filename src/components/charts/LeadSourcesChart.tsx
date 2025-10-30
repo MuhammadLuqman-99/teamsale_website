@@ -20,15 +20,28 @@ interface LeadSourcesChartProps {
 export default function LeadSourcesChart({ salesTeamData }: LeadSourcesChartProps) {
   const chartRef = useRef<ChartJS<'doughnut'>>(null)
 
-  // Filter only power_metrics data and group by team
+  // Filter only power_metrics data and get latest entry per team
   const powerMetricsData = salesTeamData.filter(item => item.type === 'power_metrics')
 
-  const sourceData = powerMetricsData.reduce((acc, item) => {
+  // Group by team and keep only latest entry
+  const teamLatestData: Record<string, SalesTeamData> = {}
+  powerMetricsData.forEach(item => {
     const source = item.agent_name || item.team || 'Unknown'
-    if (!acc[source]) {
-      acc[source] = 0
+
+    // Keep only the latest entry (by date, then by time if available)
+    if (!teamLatestData[source] || teamLatestData[source].tarikh < item.tarikh) {
+      teamLatestData[source] = item
+    } else if (teamLatestData[source].tarikh === item.tarikh) {
+      // Same date, check time
+      if (item.masa && teamLatestData[source].masa && item.masa > teamLatestData[source].masa) {
+        teamLatestData[source] = item
+      }
     }
-    acc[source] += item.total_lead_bulan || 0
+  })
+
+  // Convert to lead data
+  const sourceData = Object.entries(teamLatestData).reduce((acc, [source, item]) => {
+    acc[source] = item.total_lead_bulan || 0
     return acc
   }, {} as Record<string, number>)
 
