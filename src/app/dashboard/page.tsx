@@ -470,6 +470,7 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
               { href: '/ecommerce', icon: '🛒', color: 'from-green-500 to-green-600', title: 'Input Order', desc: 'Tambah order baru' },
+              { href: '/awb-upload', icon: '📄', color: 'from-purple-500 to-pink-500', title: 'AWB Upload', desc: 'Auto-extract PDF' },
               { href: '/marketing', icon: '📈', color: 'from-purple-500 to-purple-600', title: 'Marketing Data', desc: 'Update campaign' },
               { href: '/salesteam', icon: '👥', color: 'from-yellow-500 to-yellow-600', title: 'Sales Team', desc: 'Update leads' },
               { href: '/team-members', icon: '🧑‍💼', color: 'from-blue-500 to-blue-600', title: 'Team Members', desc: 'Urus ahli team' },
