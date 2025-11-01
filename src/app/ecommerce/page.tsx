@@ -8,7 +8,7 @@ import Card from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import { detectCSVSource, parseCSV, parsePDFInvoice, saveOrdersToFirebase } from '@/lib/fileHandlers'
-import { addOrder } from '@/lib/firestore'
+import { addOrder, saveAWBOrders } from '@/lib/firestore'
 import { extractAWBData } from '@/lib/pdf-parser/awb-parser'
 
 interface ExtractedAWBOrder {
@@ -188,13 +188,29 @@ export default function EcommercePage() {
     if (!confirm) return
 
     setProcessing(true)
+    setErrorMessage('')
+    setSuccess(false)
+
     try {
-      // TODO: Implement save to Firebase
-      // For now, just show alert
-      alert('Feature save AWB to database akan ditambah kemudian!')
-      setExtractedAWBOrders([])
-      setSuccess(true)
-      setSuccessMessage('Orders telah disimpan!')
+      // Save AWB orders to Firebase
+      const result = await saveAWBOrders(extractedAWBOrders)
+
+      if (result.errorCount > 0) {
+        setErrorMessage(
+          `${result.successCount} orders berjaya disimpan. ${result.errorCount} gagal.\n` +
+          result.errors.join('\n')
+        )
+      } else {
+        setSuccess(true)
+        setSuccessMessage(`Berjaya save ${result.successCount} AWB orders ke database!`)
+        setExtractedAWBOrders([]) // Clear after successful save
+
+        // Auto hide success message after 3 seconds
+        setTimeout(() => {
+          setSuccess(false)
+          setSuccessMessage('')
+        }, 3000)
+      }
     } catch (err: any) {
       setErrorMessage(`Error saving orders: ${err.message}`)
     } finally {

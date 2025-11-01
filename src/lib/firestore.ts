@@ -41,6 +41,27 @@ export interface MarketingData {
   createdAt?: any;
 }
 
+export interface AWBOrderData {
+  id?: string;
+  orderId: string;
+  platform: string;
+  tarikh: string;
+  masa: string;
+  tracking: string;
+  courier: string;
+  status: string;
+  cod: string;
+  customerName: string;
+  customerPhone: string;
+  customerAddress: string;
+  productName: string;
+  sku: string;
+  quantity: number;
+  seller: string;
+  createdAt?: any;
+  source: 'awb_upload';
+}
+
 export interface SalesTeamData {
   id?: string;
   tarikh: string;
@@ -386,6 +407,70 @@ export async function migrateExistingTeams(): Promise<void> {
     console.log('🎉 Migration completed!');
   } catch (error) {
     console.error('Error migrating teams:', error);
+    throw error;
+  }
+}
+
+/**
+ * Add AWB order to Firestore
+ */
+export async function addAWBOrder(orderData: Omit<AWBOrderData, 'id' | 'createdAt' | 'source'>): Promise<string> {
+  try {
+    const awbOrdersCollection = collection(db, 'awb_orders');
+    const docRef = await addDoc(awbOrdersCollection, {
+      ...orderData,
+      source: 'awb_upload',
+      createdAt: Timestamp.now()
+    });
+
+    console.log('✅ AWB Order added:', docRef.id);
+    return docRef.id;
+  } catch (error) {
+    console.error('Error adding AWB order:', error);
+    throw error;
+  }
+}
+
+/**
+ * Save multiple AWB orders to Firestore
+ */
+export async function saveAWBOrders(orders: Omit<AWBOrderData, 'id' | 'createdAt' | 'source'>[]): Promise<{
+  successCount: number;
+  errorCount: number;
+  errors: string[];
+}> {
+  let successCount = 0;
+  let errorCount = 0;
+  const errors: string[] = [];
+
+  for (const order of orders) {
+    try {
+      await addAWBOrder(order);
+      successCount++;
+    } catch (error: any) {
+      errorCount++;
+      errors.push(`Failed to save order ${order.orderId}: ${error.message}`);
+    }
+  }
+
+  return { successCount, errorCount, errors };
+}
+
+/**
+ * Get all AWB orders
+ */
+export async function getAWBOrders(): Promise<AWBOrderData[]> {
+  try {
+    const awbOrdersCollection = collection(db, 'awb_orders');
+    const q = query(awbOrdersCollection, orderBy('createdAt', 'desc'));
+    const querySnapshot = await getDocs(q);
+
+    return querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })) as AWBOrderData[];
+  } catch (error) {
+    console.error('Error getting AWB orders:', error);
     throw error;
   }
 }
