@@ -1,24 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
-import pdf from 'pdf-parse'
 
 export async function POST(request: NextRequest) {
   try {
-    const { pdfBase64 } = await request.json()
+    const { pdfBase64, pdfText } = await request.json()
 
-    if (!pdfBase64) {
+    if (!pdfBase64 && !pdfText) {
       return NextResponse.json(
-        { error: 'PDF data is required' },
+        { error: 'PDF data or text is required' },
         { status: 400 }
       )
     }
 
-    // Convert base64 to buffer
-    const base64Data = pdfBase64.replace(/^data:application\/pdf;base64,/, '')
-    const pdfBuffer = Buffer.from(base64Data, 'base64')
+    // For now, we expect the client to send extracted text
+    // This is because pdf parsing in Node.js environment has compatibility issues
+    const text = pdfText || ''
 
-    // Parse PDF
-    const data = await pdf(pdfBuffer)
-    const text = data.text
+    if (!text || text.trim().length === 0) {
+      return NextResponse.json(
+        { error: 'Unable to extract text from PDF' },
+        { status: 400 }
+      )
+    }
 
     // Detect platform
     const platform = detectPlatform(text)
