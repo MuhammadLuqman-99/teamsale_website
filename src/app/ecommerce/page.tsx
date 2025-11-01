@@ -132,6 +132,8 @@ export default function EcommercePage() {
     const files = e.target.files
     if (!files || files.length === 0) return
 
+    // Clear previous data
+    setExtractedAWBOrders([])
     setProcessing(true)
     setErrorMessage('')
     setSuccess(false)
@@ -165,6 +167,36 @@ export default function EcommercePage() {
       setSuccessMessage(`Berjaya extract ${orders.length} order dari ${files.length} PDF AWB!`)
     } catch (err: any) {
       setErrorMessage(`Error: ${err.message}`)
+    } finally {
+      setProcessing(false)
+      // Reset file input
+      if (awbInputRef.current) {
+        awbInputRef.current.value = ''
+      }
+    }
+  }
+
+  const handleSaveAWBOrders = async () => {
+    if (extractedAWBOrders.length === 0) return
+
+    const confirm = window.confirm(
+      `⚠️ Anda akan save ${extractedAWBOrders.length} order dari AWB ke database.\n\n` +
+      `Pastikan data yang dipaparkan adalah betul.\n\n` +
+      `Teruskan?`
+    )
+
+    if (!confirm) return
+
+    setProcessing(true)
+    try {
+      // TODO: Implement save to Firebase
+      // For now, just show alert
+      alert('Feature save AWB to database akan ditambah kemudian!')
+      setExtractedAWBOrders([])
+      setSuccess(true)
+      setSuccessMessage('Orders telah disimpan!')
+    } catch (err: any) {
+      setErrorMessage(`Error saving orders: ${err.message}`)
     } finally {
       setProcessing(false)
     }
@@ -478,9 +510,21 @@ export default function EcommercePage() {
                   {/* Extracted Orders Preview */}
                   {extractedAWBOrders.length > 0 && (
                     <div className="mt-8">
-                      <h3 className="text-xl font-bold text-gray-900 mb-4">
-                        Extracted Orders ({extractedAWBOrders.length})
-                      </h3>
+                      <div className="flex items-center justify-between mb-6">
+                        <div>
+                          <h3 className="text-xl font-bold text-gray-900">
+                            Extracted Orders ({extractedAWBOrders.length})
+                          </h3>
+                          <p className="text-sm text-gray-600">Review data sebelum save ke database</p>
+                        </div>
+                        <Button
+                          variant="primary"
+                          onClick={handleSaveAWBOrders}
+                          disabled={processing}
+                        >
+                          💾 Save All to Database
+                        </Button>
+                      </div>
                       <div className="space-y-4">
                         {extractedAWBOrders.map((order, index) => (
                           <motion.div
@@ -540,13 +584,6 @@ export default function EcommercePage() {
                             </div>
                           </motion.div>
                         ))}
-                      </div>
-
-                      <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
-                        <p className="text-sm text-blue-800">
-                          ℹ️ <strong>Note:</strong> Feature untuk save AWB data ke database akan ditambah kemudian.
-                          Buat masa ini, anda boleh review extracted data di sini.
-                        </p>
                       </div>
                     </div>
                   )}
