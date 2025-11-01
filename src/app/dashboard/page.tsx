@@ -709,7 +709,7 @@ export default function DashboardPage() {
                             </td>
                             <td className="px-4 py-3 text-right text-gray-900">{item.jumlah_leads || 0}</td>
                             <td className="px-4 py-3 text-right font-semibold text-gray-900">
-                              {formatCurrency(item.kos_marketing || 0)}
+                              {formatc0)}
                             </td>
                           </tr>
                         ))}

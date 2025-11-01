@@ -164,6 +164,23 @@ export default function SalesTeamPage() {
   // Submit Power Metrics Form
   const handleMetricsSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    // Check if submitting data for past month
+    const selectedDate = new Date(metricsForm.tarikh)
+    const currentDate = new Date()
+    const isPastMonth = selectedDate.getMonth() !== currentDate.getMonth() ||
+                        selectedDate.getFullYear() !== currentDate.getFullYear()
+
+    if (isPastMonth) {
+      const monthName = selectedDate.toLocaleDateString('ms-MY', { month: 'long', year: 'numeric' })
+      const confirm = window.confirm(
+        `⚠️ Anda sedang submit data untuk bulan lepas (${monthName}).\n\n` +
+        `Data ini akan update power metrics untuk ${metricsForm.team} di bulan tersebut.\n\n` +
+        `Teruskan?`
+      )
+      if (!confirm) return
+    }
+
     setLoading(true)
     setFeedback('Menghantar power metrics...')
     setFeedbackType('success')
@@ -273,14 +290,30 @@ export default function SalesTeamPage() {
 
               <form onSubmit={handleLeadSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Input
-                    label="Tarikh"
-                    name="tarikh"
-                    type="date"
-                    value={leadForm.tarikh}
-                    onChange={handleLeadChange}
-                    required
-                  />
+                  <div>
+                    <Input
+                      label="Tarikh"
+                      name="tarikh"
+                      type="date"
+                      value={leadForm.tarikh}
+                      onChange={handleLeadChange}
+                      required
+                    />
+                    {leadForm.tarikh && (
+                      <div className="mt-1">
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${
+                          new Date(leadForm.tarikh).toDateString() === new Date().toDateString()
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {new Date(leadForm.tarikh).toDateString() === new Date().toDateString()
+                            ? '✓ Hari Ini'
+                            : new Date(leadForm.tarikh).toLocaleDateString('ms-MY', { day: 'numeric', month: 'short', year: 'numeric' })
+                          }
+                        </span>
+                      </div>
+                    )}
+                  </div>
                   <Input
                     label="Masa"
                     name="masa"
@@ -391,14 +424,33 @@ export default function SalesTeamPage() {
               </div>
 
               <form onSubmit={handleMetricsSubmit} className="space-y-6">
-                <Input
-                  label="Tarikh"
-                  name="tarikh"
-                  type="date"
-                  value={metricsForm.tarikh}
-                  onChange={handleMetricsChange}
-                  required
-                />
+                <div>
+                  <Input
+                    label="Tarikh"
+                    name="tarikh"
+                    type="date"
+                    value={metricsForm.tarikh}
+                    onChange={handleMetricsChange}
+                    required
+                  />
+                  <p className="mt-2 text-sm text-gray-600">
+                    💡 Tip: Boleh pilih tarikh bulan lepas untuk update data yang terlupa
+                  </p>
+                  {metricsForm.tarikh && (
+                    <div className="mt-2">
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
+                        new Date(metricsForm.tarikh).getMonth() === new Date().getMonth()
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-amber-100 text-amber-800'
+                      }`}>
+                        {new Date(metricsForm.tarikh).getMonth() === new Date().getMonth()
+                          ? '✓ Bulan Semasa'
+                          : '⚠️ Bulan Lepas - ' + new Date(metricsForm.tarikh).toLocaleDateString('ms-MY', { month: 'long', year: 'numeric' })
+                        }
+                      </span>
+                    </div>
+                  )}
+                </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
