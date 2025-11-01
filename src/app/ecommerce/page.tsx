@@ -562,6 +562,12 @@ export default function EcommercePage() {
                               </div>
                             </div>
 
+                            {/* Customer Address */}
+                            <div className="mt-4">
+                              <p className="text-xs text-gray-600 mb-1">Alamat Penghantaran</p>
+                              <p className="text-sm text-gray-900">{order.customerAddress}</p>
+                            </div>
+
                             <div className="mt-4 pt-4 border-t border-purple-200">
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                                 <div>
