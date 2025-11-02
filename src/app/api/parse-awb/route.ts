@@ -201,19 +201,39 @@ function parseShopeeAWB(text: string): any {
       platform: 'Shopee'
     }
 
-    // Extract Order ID
-    const orderIdMatch = text.match(/(?:Order|Pesanan)[:\s#]*(\d{10,20})/i)
-    if (orderIdMatch) data.orderId = orderIdMatch[1]
+    console.log('🔍 Parsing Shopee AWB...')
 
-    // Extract Date
-    const dateMatch = text.match(/(\d{4}[-\/]\d{2}[-\/]\d{2})/)
+    // Extract Order ID - more flexible patterns
+    let orderIdMatch = text.match(/Order ID[:\s]*(\d[\d\s]{10,25})/i)
+    if (orderIdMatch) {
+      data.orderId = orderIdMatch[1].replace(/\s/g, '')
+    } else {
+      // Try alternative patterns
+      orderIdMatch = text.match(/(\d{5}\s*\d{5}\s*\d{5})/)
+      if (orderIdMatch) data.orderId = orderIdMatch[1].replace(/\s/g, '')
+    }
+
+    // Extract Date - handle different formats
+    let dateMatch = text.match(/(\d{2})\.(\d{2})\.(\d{4})/) // DD.MM.YYYY
     if (dateMatch) {
-      data.tarikh = dateMatch[1].replace(/\//g, '-')
-      data.masa = '00:00' // Shopee might not have time
+      data.tarikh = `${dateMatch[3]}-${dateMatch[2]}-${dateMatch[1]}`
+      data.masa = '00:00'
+    } else {
+      dateMatch = text.match(/(\d{2})-(\d{4})/) // MM-YYYY
+      if (dateMatch) {
+        const currentDate = new Date()
+        data.tarikh = `${dateMatch[2]}-${dateMatch[1].padStart(2, '0')}-${currentDate.getDate().toString().padStart(2, '0')}`
+        data.masa = '00:00'
+      } else {
+        // Default to current date
+        const today = new Date()
+        data.tarikh = today.toISOString().split('T')[0]
+        data.masa = '00:00'
+      }
     }
 
     // Extract Tracking
-    const trackingMatch = text.match(/(?:SPXMY|SPX|MYPM)\d+/i)
+    const trackingMatch = text.match(/SPXMY\d+/i)
     if (trackingMatch) data.tracking = trackingMatch[0]
 
     // Extract Courier
@@ -221,50 +241,72 @@ function parseShopeeAWB(text: string): any {
       data.courier = 'Shopee Express'
     } else if (text.toLowerCase().includes('j&t')) {
       data.courier = 'J&T Express'
-    } else {
+    } else if (text.toLowerCase().includes('standard')) {
       data.courier = 'Shopee Standard'
+    } else {
+      data.courier = 'Shopee Logistics'
     }
 
-    // Extract Customer Info (similar patterns to TikTok)
-    const nameMatch = text.match(/(?:Receiver|Name|Penerima)[:\s]+([A-Za-z\s]+?)(?:\n|Phone|\()/i)
-    if (nameMatch) data.customerName = nameMatch[1].trim()
+    // Extract Customer Name - flexible patterns
+    let nameMatch = text.match(/Name[:\s]+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/i)
+    if (nameMatch) {
+      data.customerName = nameMatch[1].trim()
+    } else {
+      // Try finding capitalized names
+      nameMatch = text.match(/([A-Z][a-z]+\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+Order ID/i)
+      if (nameMatch) data.customerName = nameMatch[1].trim()
+    }
 
+    // Extract Phone - if available
     const phoneMatch = text.match(/[\(]?\+?6?0?1\d[-\s*]*\d+[-\s*]*\d+/i)
     if (phoneMatch) data.customerPhone = phoneMatch[0].replace(/\s/g, '')
+    else data.customerPhone = 'N/A'
 
-    const addressMatch = text.match(/(?:Address|Alamat)[:\s]+(.+?)(?=Product|Item|$)/is)
+    // Extract Address
+    let addressMatch = text.match(/Address[:\s]+(.+?)(?=Name|Order|Postcode|Scan|$)/is)
     if (addressMatch) {
       data.customerAddress = addressMatch[1]
         .replace(/\n/g, ' ')
         .replace(/\s+/g, ' ')
         .trim()
+    } else {
+      // Try alternative: extract text between "Address:" and "Name:"
+      addressMatch = text.match(/Address[:\s]*([^N]+)Name/is)
+      if (addressMatch) {
+        data.customerAddress = addressMatch[1]
+          .replace(/\n/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim()
+      } else {
+        data.customerAddress = 'Address not found'
+      }
     }
 
-    // Extract Product
-    const productMatch = text.match(/(?:Product|Item|Produk)[:\s]+(.+?)(?=Variation|SKU|Qty)/is)
-    if (productMatch) {
-      data.productName = productMatch[1]
-        .replace(/\n/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim()
+    // Extract Postcode if available
+    const postcodeMatch = text.match(/Postcode[:\s]+(\d{5})/i)
+    if (postcodeMatch && !data.customerAddress.includes(postcodeMatch[1])) {
+      data.customerAddress += ', ' + postcodeMatch[1]
     }
 
-    // Extract SKU
-    const skuMatch = text.match(/(?:Variation|SKU)[:\s]*([^\n]+)/i)
-    if (skuMatch) data.sku = skuMatch[1].trim()
-    else data.sku = 'N/A'
+    // Product Name - may not be in Shopee AWB
+    data.productName = 'Shopee Order'
 
-    // Extract Quantity
-    const qtyMatch = text.match(/(?:Qty|Quantity|x)[:\s]*(\d+)/i)
+    // SKU
+    data.sku = 'N/A'
+
+    // Quantity
+    const qtyMatch = text.match(/Qty[:\s]*(\d+)/i)
     if (qtyMatch) data.quantity = parseInt(qtyMatch[1])
     else data.quantity = 1
 
-    // COD
+    // COD & Status
     data.cod = '0 MYR'
     data.status = 'CASHLESS'
 
     // Seller
     data.seller = 'Shopee Seller'
+
+    console.log('✅ Shopee data parsed:', data)
 
     return data
   } catch (error) {
