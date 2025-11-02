@@ -124,39 +124,33 @@ export default function ShopeeAWBPage() {
         seller: 'Shopee Seller'
       }
 
-      // Order ID - pattern: 21060 75450 or similar
-      let match = fullText.match(/Order ID[:\s]*(\d[\d\s]{8,20})/i)
-      if (match) data.orderId = match[1].replace(/\s/g, '')
-      else {
-        match = fullText.match(/(\d{5}\s*\d{5,10})/)
-        if (match) data.orderId = match[1].replace(/\s/g, '')
+      // Order ID - specific pattern for Shopee format
+      // Pattern: "Order ID: 251102NP3KRMTS" or "Order ID: 21060"
+      let match = fullText.match(/Order ID[:\s]*([A-Z0-9]+)/i)
+      if (match) {
+        data.orderId = match[1].trim()
       }
 
-      // Date - pattern: 26.10.2025 or DD.MM.YYYY
-      match = fullText.match(/(\d{2})\.(\d{2})\.(\d{4})/)
+      // Date - pattern: DD-MM-YYYY at start of text
+      match = fullText.match(/(\d{2})-(\d{2})-(\d{4})/)
       if (match) {
         data.tarikh = `${match[3]}-${match[2]}-${match[1]}`
       } else {
-        // Try MM-YYYY format
-        match = fullText.match(/(\d{2})-(\d{4})/)
-        if (match) {
-          data.tarikh = `${match[2]}-${match[1]}-01`
-        } else {
-          data.tarikh = new Date().toISOString().split('T')[0]
-        }
+        data.tarikh = new Date().toISOString().split('T')[0]
       }
 
-      // Tracking - SPXMY...
-      match = fullText.match(/SPXMY\d+/i)
+      // Tracking - SPXMY followed by digits and letter
+      match = fullText.match(/SPXMY\d+[A-Z]?/i)
       if (match) data.tracking = match[0]
 
-      // Customer Name - flexible extraction
-      match = fullText.match(/Name[:\s]+([A-Z][a-z]+\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i)
+      // Customer Name - pattern: "Name: Nong Chik (Qila)"
+      // Extract after "Name:" in Recipient Details section
+      match = fullText.match(/Recipient Details[^]*?Name[:\s]+([A-Za-z\s()]+?)(?=Order ID|Address)/i)
       if (match) {
         data.customerName = match[1].trim()
       } else {
-        // Try before "Order ID"
-        match = fullText.match(/([A-Z][a-z]+\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+Order/i)
+        // Fallback: just "Name: XXX"
+        match = fullText.match(/Name[:\s]+([A-Za-z\s()]+?)(?=Order|Address|Postcode)/i)
         if (match) data.customerName = match[1].trim()
       }
 
@@ -164,21 +158,41 @@ export default function ShopeeAWBPage() {
       match = fullText.match(/0\d{9,10}/)
       if (match) data.customerPhone = match[0]
 
-      // Address - IMPROVED: Get all text between Address: and Name: or Postcode:
-      const addressPattern = /Address[:\s]+([\s\S]+?)(?=Name:|Order ID:|Postcode:|Scan QR)/i
-      match = fullText.match(addressPattern)
+      // Address - SPECIFIC for Shopee format
+      // Pattern: Text between "Address:" and "Postcode:" in Recipient section
+      // Example: "TJ 23- KN, T194 KG PARIT KEROMA (BELAKANG DEWAN RUMAH HUJUNG) AYER BALOI, Ayer Baloi, Pontian, Johor"
+
+      // First try to get Recipient address (after tracking number, before postcode)
+      const recipientPattern = /SPXMY\d+[A-Z]?\s+(.*?)(?=Postcode[:\s]*\d{5})/is
+      match = fullText.match(recipientPattern)
+
       if (match) {
-        data.customerAddress = match[1]
+        // Clean up the address
+        let addr = match[1]
+          // Remove extra SPX tracking if repeated
+          .replace(/SPXMY\d+[A-Z]?/gi, '')
+          // Remove "Enjoy 15 Days" promo text
+          .replace(/Enjoy.*?items!/gi, '')
+          // Remove section headers
+          .replace(/Recipient Details.*?$/gi, '')
+          .replace(/Sender Details.*?$/gi, '')
+          // Clean up whitespace
           .replace(/\s+/g, ' ')
           .trim()
+
+        data.customerAddress = addr
       } else {
-        // Fallback: Try to get text before "Name:"
-        match = fullText.match(/Address[:\s]+([^\n]+)/i)
-        if (match) data.customerAddress = match[1].trim()
+        // Fallback: Get everything after "Address:" keyword
+        match = fullText.match(/Address[:\s]+(.*?)(?=Name:|Postcode:|Order ID:|$)/is)
+        if (match) {
+          data.customerAddress = match[1]
+            .replace(/\s+/g, ' ')
+            .trim()
+        }
       }
 
-      // Add postcode if found
-      match = fullText.match(/Postcode[:\s]+(\d{5})/i)
+      // Add postcode if found and not already in address
+      match = fullText.match(/Postcode[:\s]*(\d{5})/i)
       if (match && !data.customerAddress.includes(match[1])) {
         data.customerAddress += ', ' + match[1]
       }
