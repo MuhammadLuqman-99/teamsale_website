@@ -63,10 +63,11 @@ async function extractTextFromPDF(pdfBase64: string): Promise<string> {
   try {
     // Check if pdfjs is loaded
     if (typeof window === 'undefined' || !(window as any).pdfjsLib) {
-      throw new Error('PDF.js library not loaded')
+      throw new Error('PDF.js library not loaded. Pastikan library loaded di page.')
     }
 
     const pdfjsLib = (window as any).pdfjsLib
+    console.log('📚 PDF.js version:', pdfjsLib.version)
 
     // Convert base64 to array buffer
     const base64Data = pdfBase64.replace(/^data:application\/pdf;base64,/, '')
@@ -76,9 +77,13 @@ async function extractTextFromPDF(pdfBase64: string): Promise<string> {
       bytes[i] = binaryString.charCodeAt(i)
     }
 
+    console.log('📄 PDF size:', bytes.length, 'bytes')
+
     // Load PDF
     const loadingTask = pdfjsLib.getDocument({ data: bytes })
     const pdf = await loadingTask.promise
+
+    console.log('📑 PDF pages:', pdf.numPages)
 
     // Extract text from all pages
     let fullText = ''
@@ -87,11 +92,15 @@ async function extractTextFromPDF(pdfBase64: string): Promise<string> {
       const textContent = await page.getTextContent()
       const pageText = textContent.items.map((item: any) => item.str).join(' ')
       fullText += pageText + '\n'
+      console.log(`📝 Page ${pageNum} text length:`, pageText.length)
     }
+
+    console.log('✅ Total extracted text length:', fullText.length)
+    console.log('📄 Text preview:', fullText.substring(0, 300))
 
     return fullText
   } catch (error) {
-    console.error('Error extracting text from PDF:', error)
+    console.error('❌ Error extracting text from PDF:', error)
     throw error
   }
 }

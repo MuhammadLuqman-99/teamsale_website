@@ -22,6 +22,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Debug: Log first 500 chars of text
+    console.log('📄 PDF Text Preview:', text.substring(0, 500))
+
     // Detect platform
     const platform = detectPlatform(text)
 
@@ -58,8 +61,33 @@ export async function POST(request: NextRequest) {
  * Detect platform from PDF content
  */
 function detectPlatform(text: string): 'tiktok' | 'shopee' | 'unknown' {
-  if (text.toLowerCase().includes('tiktok')) return 'tiktok'
-  if (text.toLowerCase().includes('shopee')) return 'shopee'
+  const lowerText = text.toLowerCase()
+
+  // TikTok Shop detection - check multiple variations
+  if (
+    lowerText.includes('tiktok') ||
+    lowerText.includes('tik tok') ||
+    lowerText.includes('tt shop') ||
+    lowerText.includes('ttshop') ||
+    text.includes('TikTok') ||
+    text.includes('TIKTOK')
+  ) {
+    console.log('✅ Detected: TikTok Shop')
+    return 'tiktok'
+  }
+
+  // Shopee detection
+  if (
+    lowerText.includes('shopee') ||
+    lowerText.includes('spx') ||
+    text.includes('Shopee') ||
+    text.includes('SHOPEE')
+  ) {
+    console.log('✅ Detected: Shopee')
+    return 'shopee'
+  }
+
+  console.log('❌ Platform unknown. Text preview:', text.substring(0, 200))
   return 'unknown'
 }
 
