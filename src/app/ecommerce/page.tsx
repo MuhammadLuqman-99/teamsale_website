@@ -30,7 +30,7 @@ interface ExtractedAWBOrder {
 }
 
 export default function EcommercePage() {
-  const [uploadMode, setUploadMode] = useState<'file' | 'awb' | 'manual'>('file')
+  const [uploadMode, setUploadMode] = useState<'file' | 'awb-shopee' | 'awb-tiktok' | 'manual'>('file')
   const [dragActive, setDragActive] = useState(false)
   const [processing, setProcessing] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -289,30 +289,40 @@ export default function EcommercePage() {
           <p className="text-gray-600 mb-8">Masukkan maklumat order dari eCommerce platform</p>
 
           {/* Mode Selector */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <button
               onClick={() => setUploadMode('file')}
-              className={`py-3 px-6 rounded-xl font-medium transition-all ${
+              className={`py-3 px-4 rounded-xl font-medium transition-all ${
                 uploadMode === 'file'
                   ? 'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-md'
                   : 'bg-white text-gray-700 border-2 border-gray-200 hover:border-gray-300'
               }`}
             >
-              📁 Upload CSV/PDF Invoice
+              📁 CSV/PDF Invoice
             </button>
             <button
-              onClick={() => setUploadMode('awb')}
-              className={`py-3 px-6 rounded-xl font-medium transition-all ${
-                uploadMode === 'awb'
-                  ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-md'
+              onClick={() => setUploadMode('awb-shopee')}
+              className={`py-3 px-4 rounded-xl font-medium transition-all ${
+                uploadMode === 'awb-shopee'
+                  ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-md'
                   : 'bg-white text-gray-700 border-2 border-gray-200 hover:border-gray-300'
               }`}
             >
-              📄 Upload AWB PDF
+              🛍️ AWB Shopee
+            </button>
+            <button
+              onClick={() => setUploadMode('awb-tiktok')}
+              className={`py-3 px-4 rounded-xl font-medium transition-all ${
+                uploadMode === 'awb-tiktok'
+                  ? 'bg-gradient-to-r from-black to-pink-500 text-white shadow-md'
+                  : 'bg-white text-gray-700 border-2 border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              🎵 AWB TikTok
             </button>
             <button
               onClick={() => setUploadMode('manual')}
-              className={`py-3 px-6 rounded-xl font-medium transition-all ${
+              className={`py-3 px-4 rounded-xl font-medium transition-all ${
                 uploadMode === 'manual'
                   ? 'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-md'
                   : 'bg-white text-gray-700 border-2 border-gray-200 hover:border-gray-300'
@@ -424,9 +434,9 @@ export default function EcommercePage() {
                   )}
                 </Card>
               </motion.div>
-            ) : uploadMode === 'awb' ? (
+            ) : uploadMode === 'awb-shopee' ? (
               <motion.div
-                key="awb"
+                key="awb-shopee"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
@@ -434,12 +444,12 @@ export default function EcommercePage() {
               >
                 <Card className="p-8">
                   <div className="mb-6">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-2">Upload AWB PDF</h2>
-                    <p className="text-gray-600">Upload AWB dari TikTok Shop atau Shopee untuk auto-extract data</p>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-2">Upload Shopee AWB PDF</h2>
+                    <p className="text-gray-600">Upload AWB Shopee untuk auto-extract Order ID, Nama, Alamat, Tracking</p>
                   </div>
 
-                  {/* AWB Upload Area */}
-                  <div className="border-2 border-dashed border-purple-300 rounded-xl p-12 text-center hover:border-purple-500 transition-colors">
+                  {/* Shopee Upload - Use same logic as /awb-shopee page */}
+                  <div className="border-2 border-dashed border-orange-300 rounded-xl p-12 text-center hover:border-orange-500 transition-colors">
                     <input
                       ref={awbInputRef}
                       type="file"
@@ -447,164 +457,183 @@ export default function EcommercePage() {
                       multiple
                       onChange={handleAWBUpload}
                       className="hidden"
-                      id="awb-upload"
+                      id="shopee-upload"
                       disabled={processing}
                     />
-                    <label htmlFor="awb-upload" className="cursor-pointer">
-                      <div className="text-6xl mb-4">📄</div>
+                    <label htmlFor="shopee-upload" className="cursor-pointer">
+                      <div className="text-6xl mb-4">🛍️</div>
                       <h3 className="text-xl font-bold text-gray-900 mb-2">
-                        {processing ? 'Processing...' : 'Click to Upload AWB PDF'}
+                        {processing ? 'Processing...' : 'Click untuk Upload AWB Shopee'}
                       </h3>
-                      <p className="text-gray-600">
-                        Atau drag & drop PDF files sini
-                      </p>
-                      <p className="text-sm text-gray-500 mt-2">
-                        Support: TikTok Shop AWB, Shopee AWB
-                      </p>
+                      <p className="text-gray-600">PDF sahaja</p>
                     </label>
                   </div>
 
-                  {/* Processing Indicator */}
                   {processing && (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="mt-6 p-6 bg-purple-50 rounded-xl border border-purple-200"
-                    >
+                    <div className="mt-6 p-6 bg-orange-50 rounded-xl border border-orange-200">
                       <div className="flex items-center gap-3">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
                         <div>
-                          <p className="font-semibold text-purple-900">Extracting data dari PDF...</p>
-                          <p className="text-sm text-purple-700">Please wait</p>
+                          <p className="font-semibold text-orange-900">Extracting data...</p>
+                          <p className="text-sm text-orange-700">Please wait</p>
                         </div>
                       </div>
-                    </motion.div>
+                    </div>
                   )}
 
-                  {/* Success Message */}
                   {success && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="mt-6 p-6 bg-green-50 rounded-xl border border-green-200"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-                          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                          </svg>
-                        </div>
-                        <div>
-                          <p className="font-semibold text-green-900">Success!</p>
-                          <p className="text-sm text-green-700">{successMessage}</p>
-                        </div>
-                      </div>
-                    </motion.div>
+                    <div className="mt-6 p-6 bg-green-50 rounded-xl border border-green-200">
+                      <p className="text-green-800">{successMessage}</p>
+                    </div>
                   )}
 
-                  {/* Error Message */}
                   {errorMessage && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="mt-6 p-6 bg-red-50 rounded-xl border border-red-200"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center">
-                          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </div>
-                        <div>
-                          <p className="font-semibold text-red-900">Error</p>
-                          <p className="text-sm text-red-700">{errorMessage}</p>
-                        </div>
-                      </div>
-                    </motion.div>
+                    <div className="mt-6 p-6 bg-red-50 rounded-xl border border-red-200">
+                      <p className="text-red-800">{errorMessage}</p>
+                    </div>
                   )}
 
-                  {/* Extracted Orders Preview */}
                   {extractedAWBOrders.length > 0 && (
                     <div className="mt-8">
-                      <div className="flex items-center justify-between mb-6">
-                        <div>
-                          <h3 className="text-xl font-bold text-gray-900">
-                            Extracted Orders ({extractedAWBOrders.length})
-                          </h3>
-                          <p className="text-sm text-gray-600">Review data sebelum save ke database</p>
-                        </div>
-                        <Button
-                          variant="primary"
-                          onClick={handleSaveAWBOrders}
-                          disabled={processing}
-                        >
-                          💾 Save All to Database
+                      <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-xl font-bold">Extracted Orders ({extractedAWBOrders.length})</h3>
+                        <Button onClick={handleSaveAWBOrders} disabled={processing}>
+                          💾 Save ke Database
                         </Button>
                       </div>
+
                       <div className="space-y-4">
                         {extractedAWBOrders.map((order, index) => (
-                          <motion.div
-                            key={index}
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: index * 0.1 }}
-                            className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-xl p-6"
-                          >
-                            <div className="flex items-start justify-between mb-4">
+                          <div key={index} className="bg-orange-50 border border-orange-200 rounded-xl p-6">
+                            <div className="flex justify-between mb-4">
                               <div>
-                                <h4 className="text-lg font-bold text-gray-900">{order.productName}</h4>
-                                <p className="text-sm text-gray-600">Order ID: {order.orderId}</p>
+                                <h4 className="font-bold text-lg">{order.customerName}</h4>
+                                <p className="text-sm text-gray-600">Order: {order.orderId}</p>
                               </div>
-                              <span className="px-3 py-1 bg-purple-500 text-white rounded-full text-xs font-semibold">
-                                {order.platform}
-                              </span>
+                              <span className="px-3 py-1 bg-orange-500 text-white rounded-full text-sm">Shopee</span>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="grid grid-cols-2 gap-4 mb-4">
                               <div>
-                                <p className="text-xs text-gray-600 mb-1">Customer</p>
-                                <p className="font-semibold text-gray-900">{order.customerName}</p>
-                                <p className="text-sm text-gray-600">{order.customerPhone}</p>
+                                <p className="text-xs text-gray-600">Tracking</p>
+                                <p className="font-semibold">{order.tracking}</p>
                               </div>
                               <div>
-                                <p className="text-xs text-gray-600 mb-1">Date & Time</p>
-                                <p className="font-semibold text-gray-900">{order.tarikh}</p>
-                                <p className="text-sm text-gray-600">{order.masa}</p>
-                              </div>
-                              <div>
-                                <p className="text-xs text-gray-600 mb-1">Tracking</p>
-                                <p className="font-semibold text-gray-900">{order.tracking}</p>
-                                <p className="text-sm text-gray-600">{order.courier}</p>
+                                <p className="text-xs text-gray-600">Date</p>
+                                <p className="font-semibold">{order.tarikh}</p>
                               </div>
                             </div>
 
-                            {/* Customer Address */}
-                            <div className="mt-4">
+                            <div className="mb-4">
                               <p className="text-xs text-gray-600 mb-1">Alamat Penghantaran</p>
-                              <p className="text-sm text-gray-900">{order.customerAddress}</p>
+                              <p className="text-sm bg-white p-3 rounded border">{order.customerAddress}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </Card>
+              </motion.div>
+            ) : uploadMode === 'awb-tiktok' ? (
+              <motion.div
+                key="awb-tiktok"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <Card className="p-8">
+                  <div className="mb-6">
+                    <h2 className="text-2xl font-bold text-gray-900 mb-2">Upload TikTok Shop AWB PDF</h2>
+                    <p className="text-gray-600">Upload AWB TikTok Shop untuk auto-extract Product, Customer, Alamat, Tracking</p>
+                  </div>
+
+                  {/* TikTok Upload */}
+                  <div className="border-2 border-dashed border-pink-300 rounded-xl p-12 text-center hover:border-pink-500 transition-colors">
+                    <input
+                      ref={awbInputRef}
+                      type="file"
+                      accept=".pdf"
+                      multiple
+                      onChange={handleAWBUpload}
+                      className="hidden"
+                      id="tiktok-upload"
+                      disabled={processing}
+                    />
+                    <label htmlFor="tiktok-upload" className="cursor-pointer">
+                      <div className="text-6xl mb-4">🎵</div>
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">
+                        {processing ? 'Processing...' : 'Click untuk Upload AWB TikTok Shop'}
+                      </h3>
+                      <p className="text-gray-600">PDF sahaja</p>
+                    </label>
+                  </div>
+
+                  {processing && (
+                    <div className="mt-6 p-6 bg-pink-50 rounded-xl border border-pink-200">
+                      <div className="flex items-center gap-3">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-600"></div>
+                        <div>
+                          <p className="font-semibold text-pink-900">Extracting data...</p>
+                          <p className="text-sm text-pink-700">Please wait</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {success && (
+                    <div className="mt-6 p-6 bg-green-50 rounded-xl border border-green-200">
+                      <p className="text-green-800">{successMessage}</p>
+                    </div>
+                  )}
+
+                  {errorMessage && (
+                    <div className="mt-6 p-6 bg-red-50 rounded-xl border border-red-200">
+                      <p className="text-red-800">{errorMessage}</p>
+                    </div>
+                  )}
+
+                  {extractedAWBOrders.length > 0 && (
+                    <div className="mt-8">
+                      <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-xl font-bold">Extracted Orders ({extractedAWBOrders.length})</h3>
+                        <Button onClick={handleSaveAWBOrders} disabled={processing}>
+                          💾 Save ke Database
+                        </Button>
+                      </div>
+
+                      <div className="space-y-4">
+                        {extractedAWBOrders.map((order, index) => (
+                          <div key={index} className="bg-gradient-to-r from-pink-50 to-purple-50 border border-pink-200 rounded-xl p-6">
+                            <div className="flex justify-between mb-4">
+                              <div>
+                                <h4 className="font-bold text-lg">{order.productName}</h4>
+                                <p className="text-sm text-gray-600">Order: {order.orderId}</p>
+                              </div>
+                              <span className="px-3 py-1 bg-gradient-to-r from-black to-pink-500 text-white rounded-full text-sm">TikTok Shop</span>
                             </div>
 
-                            <div className="mt-4 pt-4 border-t border-purple-200">
-                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                                <div>
-                                  <span className="text-gray-600">SKU:</span>
-                                  <span className="ml-2 font-semibold">{order.sku}</span>
-                                </div>
-                                <div>
-                                  <span className="text-gray-600">Qty:</span>
-                                  <span className="ml-2 font-semibold">{order.quantity}</span>
-                                </div>
-                                <div>
-                                  <span className="text-gray-600">Status:</span>
-                                  <span className="ml-2 font-semibold">{order.status}</span>
-                                </div>
-                                <div>
-                                  <span className="text-gray-600">COD:</span>
-                                  <span className="ml-2 font-semibold">{order.cod}</span>
-                                </div>
+                            <div className="grid grid-cols-3 gap-4 mb-4">
+                              <div>
+                                <p className="text-xs text-gray-600">Customer</p>
+                                <p className="font-semibold">{order.customerName}</p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-gray-600">Date & Time</p>
+                                <p className="font-semibold">{order.tarikh} {order.masa}</p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-gray-600">Tracking</p>
+                                <p className="font-semibold">{order.tracking}</p>
                               </div>
                             </div>
-                          </motion.div>
+
+                            <div className="mb-4">
+                              <p className="text-xs text-gray-600 mb-1">Alamat Penghantaran</p>
+                              <p className="text-sm bg-white p-3 rounded border">{order.customerAddress}</p>
+                            </div>
+                          </div>
                         ))}
                       </div>
                     </div>
