@@ -246,10 +246,91 @@ export default function BalanceMonitorPage() {
     return 'from-red-500 to-red-600'
   }
 
+  const monthNames = ['Jan', 'Feb', 'Mac', 'Apr', 'Mei', 'Jun', 'Jul', 'Ogos', 'Sep', 'Okt', 'Nov', 'Dis']
+
+  const handlePreviousMonth = () => {
+    if (selectedMonth === 0) {
+      setSelectedMonth(11)
+      setSelectedYear(selectedYear - 1)
+    } else {
+      setSelectedMonth(selectedMonth - 1)
+    }
+  }
+
+  const handleNextMonth = () => {
+    if (selectedMonth === 11) {
+      setSelectedMonth(0)
+      setSelectedYear(selectedYear + 1)
+    } else {
+      setSelectedMonth(selectedMonth + 1)
+    }
+  }
+
+  const isCurrentMonth = selectedYear === now.getFullYear() && selectedMonth === now.getMonth()
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">
+      {/* Navigation Header */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-gray-900/80 backdrop-blur-sm border-b border-gray-700/50">
+        <div className="container mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            {/* Back Button */}
+            <Link href="/dashboard">
+              <Button variant="secondary" size="sm" className="flex items-center gap-2">
+                <span>←</span>
+                <span>Dashboard</span>
+              </Button>
+            </Link>
+
+            {/* Month Selector */}
+            <div className="flex items-center gap-4">
+              <button
+                onClick={handlePreviousMonth}
+                className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-colors"
+              >
+                ←
+              </button>
+
+              <div className="bg-gradient-to-r from-teal-500 to-blue-500 px-6 py-2 rounded-lg">
+                <p className="text-white font-bold text-lg">
+                  {monthNames[selectedMonth]} {selectedYear}
+                  {isCurrentMonth && <span className="ml-2 text-xs">(Bulan Ini)</span>}
+                </p>
+              </div>
+
+              <button
+                onClick={handleNextMonth}
+                disabled={isCurrentMonth}
+                className={`px-4 py-2 rounded-lg transition-colors ${
+                  isCurrentMonth
+                    ? 'bg-gray-800/50 text-gray-600 cursor-not-allowed'
+                    : 'bg-gray-800 hover:bg-gray-700 text-white'
+                }`}
+              >
+                →
+              </button>
+            </div>
+
+            {/* Auto-refresh toggle */}
+            <div className="flex items-center gap-2">
+              <span className="text-gray-400 text-sm">Auto Refresh</span>
+              <button
+                onClick={() => setAutoRefresh(!autoRefresh)}
+                className={`w-12 h-6 rounded-full transition-colors ${
+                  autoRefresh ? 'bg-teal-500' : 'bg-gray-700'
+                }`}
+              >
+                <div className={`w-5 h-5 bg-white rounded-full transition-transform ${
+                  autoRefresh ? 'translate-x-6' : 'translate-x-1'
+                }`}></div>
+              </button>
+            </div>
+          </div>
+        </div>
+      </nav>
+
       {/* Main Content - Fullscreen */}
-      <main className="h-screen w-screen p-6 flex items-center justify-center">
+      <main className="h-screen w-screen pt-20 p-6 flex items-center justify-center">
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
