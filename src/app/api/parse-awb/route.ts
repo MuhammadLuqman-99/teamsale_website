@@ -202,15 +202,23 @@ function parseShopeeAWB(text: string): any {
     }
 
     console.log('🔍 Parsing Shopee AWB...')
+    console.log('📄 Full text preview:', text.substring(0, 500))
 
     // Extract Order ID - handle various formats
-    let orderIdMatch = text.match(/Order ID[:\s]*([A-Z0-9]+)/i)
+    // Look for pattern: Order ID: 250915J40YG6B1 (alphanumeric, 10-15 chars)
+    let orderIdMatch = text.match(/Order ID[:\s]*([A-Z0-9]{10,15})/i)
     if (orderIdMatch) {
       data.orderId = orderIdMatch[1].replace(/\s/g, '')
+      console.log('✅ Order ID found:', data.orderId)
     } else {
-      // Try alternative patterns (numeric only)
-      orderIdMatch = text.match(/(\d{5}\s*\d{5}\s*\d{5})/)
-      if (orderIdMatch) data.orderId = orderIdMatch[1].replace(/\s/g, '')
+      // Try alternative patterns (numeric only, 15 digits)
+      orderIdMatch = text.match(/(\d{15})/)
+      if (orderIdMatch) {
+        data.orderId = orderIdMatch[1]
+        console.log('✅ Order ID (numeric) found:', data.orderId)
+      } else {
+        console.log('❌ Order ID not found')
+      }
     }
 
     // Extract Date - handle different formats
@@ -253,45 +261,64 @@ function parseShopeeAWB(text: string): any {
     }
 
     // Extract Customer Name from "Recipient Details" section
-    let nameMatch = text.match(/Recipient Details[^]*?Name[:\s]+([A-Za-z][A-Za-z\s]+?)(?=\s{2,}|Address|Postcode|$)/i)
+    // Pattern: Look for "Name:" after "Recipient Details" but before next "Address:" or postcode numbers
+    let nameMatch = text.match(/Recipient Details[^]*?Name[:\s]+([A-Za-z][A-Za-z\s]{1,50}?)(?=\s+Address[:\s]|Postcode[:\s]|\d{5})/i)
     if (nameMatch) {
       data.customerName = nameMatch[1].trim()
+      console.log('✅ Customer Name found:', data.customerName)
     } else {
-      // Fallback: Try generic Name: pattern
-      nameMatch = text.match(/Name[:\s]+([A-Za-z][A-Za-z\s]+?)(?=\s{2,}|Address|Order|Postcode|$)/i)
+      // Fallback: Try to find Name: followed by letters only
+      nameMatch = text.match(/Name[:\s]+([A-Za-z][A-Za-z\s]{2,30})(?=\s+Address|Order ID|\d{5})/i)
       if (nameMatch) {
         data.customerName = nameMatch[1].trim()
+        console.log('✅ Customer Name (fallback) found:', data.customerName)
       } else {
         data.customerName = 'N/A'
+        console.log('❌ Customer Name not found')
       }
     }
 
-    // Extract Phone - if available
-    const phoneMatch = text.match(/[\(]?\+?6?0?1\d[-\s*]*\d+[-\s*]*\d+/i)
-    if (phoneMatch) data.customerPhone = phoneMatch[0].replace(/\s/g, '')
-    else data.customerPhone = 'N/A'
+    // Extract Phone - look for Malaysian phone numbers
+    const phoneMatch = text.match(/(?:Phone|Tel|Telefon|HP)[:\s]*([+]?60\d{9,10})|([+]?60\d{9,10})/i)
+    if (phoneMatch) {
+      data.customerPhone = (phoneMatch[1] || phoneMatch[2]).replace(/\s/g, '')
+      console.log('✅ Phone found:', data.customerPhone)
+    } else {
+      data.customerPhone = 'N/A'
+      console.log('❌ Phone not found')
+    }
 
     // Extract Address from "Recipient Details" section
-    let addressMatch = text.match(/Recipient Details[^]*?Address[:\s]+(.+?)(?=Postcode|Enjoy|Scan|$)/is)
+    // Look for text after "Address:" until we hit "Postcode:" or 5-digit number
+    let addressMatch = text.match(/Recipient Details[^]*?Address[:\s]+(.+?)(?=\s*Postcode[:\s]*\d{5})/is)
     if (addressMatch) {
-      data.customerAddress = addressMatch[1]
+      let addr = addressMatch[1]
+        .replace(/Name[:\s]+[A-Za-z\s]+/gi, '') // Remove any "Name:" labels
         .replace(/\n/g, ' ')
         .replace(/\s+/g, ' ')
         .trim()
+
+      // Clean up if address starts with "Name:"
+      addr = addr.replace(/^Name[:\s]+/i, '')
+
+      data.customerAddress = addr
+      console.log('✅ Address found:', data.customerAddress)
     } else {
-      // Fallback: Try generic Address: pattern
-      addressMatch = text.match(/Address[:\s]+(.+?)(?=Name|Postcode|Order|$)/is)
+      // Fallback: Try to find any Address: pattern
+      addressMatch = text.match(/Address[:\s]+(.+?)(?=\s*Postcode[:\s]*\d{5}|Name[:\s]|$)/is)
       if (addressMatch) {
         data.customerAddress = addressMatch[1]
           .replace(/\n/g, ' ')
           .replace(/\s+/g, ' ')
           .trim()
+        console.log('✅ Address (fallback) found:', data.customerAddress)
       } else {
         data.customerAddress = 'Address not found'
+        console.log('❌ Address not found')
       }
     }
 
-    // Extract Postcode
+    // Extract Postcode - look for "Postcode: 71700" or just 5 digits near address
     const postcodeMatch = text.match(/Postcode[:\s]*(\d{5})/i)
     if (postcodeMatch) {
       const postcode = postcodeMatch[1]
@@ -299,6 +326,9 @@ function parseShopeeAWB(text: string): any {
       if (!data.customerAddress.includes(postcode)) {
         data.customerAddress += `, ${postcode}`
       }
+      console.log('✅ Postcode found:', postcode)
+    } else {
+      console.log('❌ Postcode not found')
     }
 
     // Product Name - may not be in Shopee AWB
