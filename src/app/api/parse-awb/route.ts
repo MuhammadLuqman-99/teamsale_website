@@ -203,32 +203,37 @@ function parseShopeeAWB(text: string): any {
 
     console.log('🔍 Parsing Shopee AWB...')
 
-    // Extract Order ID - more flexible patterns
-    let orderIdMatch = text.match(/Order ID[:\s]*(\d[\d\s]{10,25})/i)
+    // Extract Order ID - handle various formats
+    let orderIdMatch = text.match(/Order ID[:\s]*([A-Z0-9]+)/i)
     if (orderIdMatch) {
       data.orderId = orderIdMatch[1].replace(/\s/g, '')
     } else {
-      // Try alternative patterns
+      // Try alternative patterns (numeric only)
       orderIdMatch = text.match(/(\d{5}\s*\d{5}\s*\d{5})/)
       if (orderIdMatch) data.orderId = orderIdMatch[1].replace(/\s/g, '')
     }
 
     // Extract Date - handle different formats
-    let dateMatch = text.match(/(\d{2})\.(\d{2})\.(\d{4})/) // DD.MM.YYYY
+    let dateMatch = text.match(/(\d{2})-(\d{2})-(\d{4})/) // DD-MM-YYYY
     if (dateMatch) {
       data.tarikh = `${dateMatch[3]}-${dateMatch[2]}-${dateMatch[1]}`
       data.masa = '00:00'
     } else {
-      dateMatch = text.match(/(\d{2})-(\d{4})/) // MM-YYYY
+      dateMatch = text.match(/(\d{2})\.(\d{2})\.(\d{4})/) // DD.MM.YYYY
       if (dateMatch) {
-        const currentDate = new Date()
-        data.tarikh = `${dateMatch[2]}-${dateMatch[1].padStart(2, '0')}-${currentDate.getDate().toString().padStart(2, '0')}`
+        data.tarikh = `${dateMatch[3]}-${dateMatch[2]}-${dateMatch[1]}`
         data.masa = '00:00'
       } else {
-        // Default to current date
-        const today = new Date()
-        data.tarikh = today.toISOString().split('T')[0]
-        data.masa = '00:00'
+        dateMatch = text.match(/Ship By Date[:\s]*(\d{2})-(\d{2})-(\d{4})/i)
+        if (dateMatch) {
+          data.tarikh = `${dateMatch[3]}-${dateMatch[2]}-${dateMatch[1]}`
+          data.masa = '00:00'
+        } else {
+          // Default to current date
+          const today = new Date()
+          data.tarikh = today.toISOString().split('T')[0]
+          data.masa = '00:00'
+        }
       }
     }
 
@@ -237,8 +242,8 @@ function parseShopeeAWB(text: string): any {
     if (trackingMatch) data.tracking = trackingMatch[0]
 
     // Extract Courier
-    if (text.toLowerCase().includes('shopee express')) {
-      data.courier = 'Shopee Express'
+    if (text.toLowerCase().includes('spx express') || text.toLowerCase().includes('shopee express')) {
+      data.courier = 'SPX Express'
     } else if (text.toLowerCase().includes('j&t')) {
       data.courier = 'J&T Express'
     } else if (text.toLowerCase().includes('standard')) {
@@ -247,14 +252,18 @@ function parseShopeeAWB(text: string): any {
       data.courier = 'Shopee Logistics'
     }
 
-    // Extract Customer Name - flexible patterns
-    let nameMatch = text.match(/Name[:\s]+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/i)
+    // Extract Customer Name from "Recipient Details" section
+    let nameMatch = text.match(/Recipient Details[^]*?Name[:\s]+([A-Za-z][A-Za-z\s]+?)(?=\s{2,}|Address|Postcode|$)/i)
     if (nameMatch) {
       data.customerName = nameMatch[1].trim()
     } else {
-      // Try finding capitalized names
-      nameMatch = text.match(/([A-Z][a-z]+\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+Order ID/i)
-      if (nameMatch) data.customerName = nameMatch[1].trim()
+      // Fallback: Try generic Name: pattern
+      nameMatch = text.match(/Name[:\s]+([A-Za-z][A-Za-z\s]+?)(?=\s{2,}|Address|Order|Postcode|$)/i)
+      if (nameMatch) {
+        data.customerName = nameMatch[1].trim()
+      } else {
+        data.customerName = 'N/A'
+      }
     }
 
     // Extract Phone - if available
@@ -262,16 +271,16 @@ function parseShopeeAWB(text: string): any {
     if (phoneMatch) data.customerPhone = phoneMatch[0].replace(/\s/g, '')
     else data.customerPhone = 'N/A'
 
-    // Extract Address
-    let addressMatch = text.match(/Address[:\s]+(.+?)(?=Name|Order|Postcode|Scan|$)/is)
+    // Extract Address from "Recipient Details" section
+    let addressMatch = text.match(/Recipient Details[^]*?Address[:\s]+(.+?)(?=Postcode|Enjoy|Scan|$)/is)
     if (addressMatch) {
       data.customerAddress = addressMatch[1]
         .replace(/\n/g, ' ')
         .replace(/\s+/g, ' ')
         .trim()
     } else {
-      // Try alternative: extract text between "Address:" and "Name:"
-      addressMatch = text.match(/Address[:\s]*([^N]+)Name/is)
+      // Fallback: Try generic Address: pattern
+      addressMatch = text.match(/Address[:\s]+(.+?)(?=Name|Postcode|Order|$)/is)
       if (addressMatch) {
         data.customerAddress = addressMatch[1]
           .replace(/\n/g, ' ')
@@ -282,10 +291,14 @@ function parseShopeeAWB(text: string): any {
       }
     }
 
-    // Extract Postcode if available
-    const postcodeMatch = text.match(/Postcode[:\s]+(\d{5})/i)
-    if (postcodeMatch && !data.customerAddress.includes(postcodeMatch[1])) {
-      data.customerAddress += ', ' + postcodeMatch[1]
+    // Extract Postcode
+    const postcodeMatch = text.match(/Postcode[:\s]*(\d{5})/i)
+    if (postcodeMatch) {
+      const postcode = postcodeMatch[1]
+      // Add postcode to address if not already included
+      if (!data.customerAddress.includes(postcode)) {
+        data.customerAddress += `, ${postcode}`
+      }
     }
 
     // Product Name - may not be in Shopee AWB
@@ -298,6 +311,12 @@ function parseShopeeAWB(text: string): any {
     const qtyMatch = text.match(/Qty[:\s]*(\d+)/i)
     if (qtyMatch) data.quantity = parseInt(qtyMatch[1])
     else data.quantity = 1
+
+    // Weight
+    const weightMatch = text.match(/Weight[:\s]*\(kg\)[:\s]*([0-9.]+)/i)
+    if (weightMatch) {
+      data.weight = weightMatch[1] + ' kg'
+    }
 
     // COD & Status
     data.cod = '0 MYR'
