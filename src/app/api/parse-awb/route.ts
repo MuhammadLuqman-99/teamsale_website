@@ -205,20 +205,27 @@ function parseShopeeAWB(text: string): any {
     console.log('📄 Full text preview:', text.substring(0, 500))
 
     // Extract Order ID - handle various formats
-    // Look for pattern: Order ID: 250915J40YG6B1 (alphanumeric, 10-15 chars)
+    // Try multiple patterns in order of specificity
     let orderIdMatch = text.match(/Order ID[:\s]*([A-Z0-9]{10,15})/i)
+    if (!orderIdMatch) {
+      // Try with spaces: "Order ID : 250915J40YG6B1" or scattered text
+      orderIdMatch = text.match(/Order\s+ID[:\s]+([A-Z0-9]{10,15})/i)
+    }
+    if (!orderIdMatch) {
+      // Try finding just alphanumeric string starting with digits (e.g., 250915J40YG6B1)
+      orderIdMatch = text.match(/(\d{6}[A-Z0-9]{4,9})/i)
+    }
+    if (!orderIdMatch) {
+      // Try 15-digit numeric only (old format)
+      orderIdMatch = text.match(/(?:Order ID[:\s]*)?(\d{15})/)
+    }
+
     if (orderIdMatch) {
       data.orderId = orderIdMatch[1].replace(/\s/g, '')
       console.log('✅ Order ID found:', data.orderId)
     } else {
-      // Try alternative patterns (numeric only, 15 digits)
-      orderIdMatch = text.match(/(\d{15})/)
-      if (orderIdMatch) {
-        data.orderId = orderIdMatch[1]
-        console.log('✅ Order ID (numeric) found:', data.orderId)
-      } else {
-        console.log('❌ Order ID not found')
-      }
+      data.orderId = 'N/A'
+      console.log('❌ Order ID not found')
     }
 
     // Extract Date - handle different formats
@@ -289,33 +296,40 @@ function parseShopeeAWB(text: string): any {
     }
 
     // Extract Address from "Recipient Details" section
-    // Look for text after "Address:" until we hit "Postcode:" or 5-digit number
-    let addressMatch = text.match(/Recipient Details[^]*?Address[:\s]+(.+?)(?=\s*Postcode[:\s]*\d{5})/is)
+    // Try multiple patterns for address extraction
+    let addressMatch = text.match(/Recipient Details[^]*?Address[:\s]+(.+?)(?=\s*Postcode[:\s]*\d{5}|Enjoy|Scan)/is)
+
+    if (!addressMatch) {
+      // Try simpler pattern without Recipient Details
+      addressMatch = text.match(/Address[:\s]+(.+?)(?=\s*Postcode[:\s]*\d{5})/is)
+    }
+
+    if (!addressMatch) {
+      // Try even more relaxed - just get text after Address: for reasonable length
+      addressMatch = text.match(/Address[:\s]+([^\n]{10,200})/is)
+    }
+
     if (addressMatch) {
       let addr = addressMatch[1]
         .replace(/Name[:\s]+[A-Za-z\s]+/gi, '') // Remove any "Name:" labels
+        .replace(/Order ID[:\s]+[A-Z0-9]+/gi, '') // Remove Order ID if mixed in
+        .replace(/Postcode[:\s]+\d{5}/gi, '') // Remove Postcode label
         .replace(/\n/g, ' ')
         .replace(/\s+/g, ' ')
         .trim()
 
-      // Clean up if address starts with "Name:"
-      addr = addr.replace(/^Name[:\s]+/i, '')
+      // Clean up if address starts with labels
+      addr = addr.replace(/^(Name|Order ID|Postcode)[:\s]+/i, '')
+
+      // Remove trailing "Postcode" or "Enjoy" text
+      addr = addr.replace(/\s*(Postcode|Enjoy|Scan).*$/i, '')
 
       data.customerAddress = addr
       console.log('✅ Address found:', data.customerAddress)
     } else {
-      // Fallback: Try to find any Address: pattern
-      addressMatch = text.match(/Address[:\s]+(.+?)(?=\s*Postcode[:\s]*\d{5}|Name[:\s]|$)/is)
-      if (addressMatch) {
-        data.customerAddress = addressMatch[1]
-          .replace(/\n/g, ' ')
-          .replace(/\s+/g, ' ')
-          .trim()
-        console.log('✅ Address (fallback) found:', data.customerAddress)
-      } else {
-        data.customerAddress = 'Address not found'
-        console.log('❌ Address not found')
-      }
+      data.customerAddress = 'Address not found'
+      console.log('❌ Address not found')
+      console.log('📄 Text sample for debug:', text.substring(0, 800))
     }
 
     // Extract Postcode - look for "Postcode: 71700" or just 5 digits near address
