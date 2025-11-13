@@ -202,7 +202,8 @@ function parseShopeeAWB(text: string): any {
     }
 
     console.log('🔍 Parsing Shopee AWB...')
-    console.log('📄 Full text preview:', text.substring(0, 500))
+    console.log('📄 Full text (COMPLETE):', text)
+    console.log('📄 Text length:', text.length, 'chars')
 
     // Extract Order ID - handle various formats
     // Try multiple patterns in order of specificity
