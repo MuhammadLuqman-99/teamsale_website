@@ -276,22 +276,26 @@ function parseShopeeAWB(text: string): any {
       data.courier = 'Shopee Logistics'
     }
 
-    // Extract Customer Name from "Recipient Details" section
-    // Pattern: Look for "Name:" after "Recipient Details" but before next "Address:" or postcode numbers
+    // Extract Customer Name from "Recipient Details" or scattered text
+    // Pattern 1: Look for "Name:" after "Recipient Details"
     let nameMatch = text.match(/Recipient Details[^]*?Name[:\s]+([A-Za-z][A-Za-z\s]{1,50}?)(?=\s+Address[:\s]|Postcode[:\s]|\d{5})/i)
+
+    if (!nameMatch) {
+      // Pattern 2: Look for capitalized name before "Address:" or postcode
+      nameMatch = text.match(/\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,3})\s+(?:Address|No\.\s*\d+|\d{5})/i)
+    }
+
+    if (!nameMatch) {
+      // Pattern 3: Generic Name: label
+      nameMatch = text.match(/Name[:\s]+([A-Za-z][A-Za-z\s]{2,30})(?=\s+Address|Order ID|\d{5})/i)
+    }
+
     if (nameMatch) {
       data.customerName = nameMatch[1].trim()
       console.log('✅ Customer Name found:', data.customerName)
     } else {
-      // Fallback: Try to find Name: followed by letters only
-      nameMatch = text.match(/Name[:\s]+([A-Za-z][A-Za-z\s]{2,30})(?=\s+Address|Order ID|\d{5})/i)
-      if (nameMatch) {
-        data.customerName = nameMatch[1].trim()
-        console.log('✅ Customer Name (fallback) found:', data.customerName)
-      } else {
-        data.customerName = 'N/A'
-        console.log('❌ Customer Name not found')
-      }
+      data.customerName = 'N/A'
+      console.log('❌ Customer Name not found')
     }
 
     // Extract Phone - look for Malaysian phone numbers
@@ -304,28 +308,32 @@ function parseShopeeAWB(text: string): any {
       console.log('❌ Phone not found')
     }
 
-    // Extract Address from "Recipient Details" section or scattered text
-    // Try multiple patterns for address extraction
+    // Extract Address from "Recipient Details" or "Buyer Details" section or scattered text
+    // Pattern 1: From Recipient Details
     let addressMatch = text.match(/Recipient Details[^]*?Address[:\s]+(.+?)(?=\s*Postcode[:\s]*\d{5}|Enjoy|Scan)/is)
 
     if (!addressMatch) {
-      // Try finding address near "No." pattern (common Malaysian address format)
-      // Pattern: "No. 29, Cabang 3 Manek Urai, Olak Jeram, Kuala Krai, Kelantan"
-      addressMatch = text.match(/\b(No\.\s*\d+[^]*?(?:[A-Z][a-z]+[,\s]+){2,}[A-Z][a-z]+)\b/i)
+      // Pattern 2: From "Buyer Details (FWD)" - text between it and "NDD" or tracking
+      addressMatch = text.match(/Buyer Details\s*\(FWD\)[^\n]*?\s+(No\.\s*\d+[^]*?)(?=\s*(?:NDD|N\s*D\s*D|SPXMY|Enjoy))/is)
     }
 
     if (!addressMatch) {
-      // Try simpler pattern: Address: ... until Postcode
+      // Pattern 3: Malaysian address with "No." format
+      addressMatch = text.match(/\b(No\.\s*\d+,?\s+[^,]+,\s+[^,]+,\s+[^,]+,\s+[A-Z][a-z]+)\b/i)
+    }
+
+    if (!addressMatch) {
+      // Pattern 4: Address: label pattern
       addressMatch = text.match(/Address[:\s]+(.+?)(?=\s*Postcode[:\s]*\d{5})/is)
     }
 
     if (!addressMatch) {
-      // Try finding text between two tracking numbers or before SPXMY
+      // Pattern 5: Between Buyer/Seller Details and tracking
       addressMatch = text.match(/(?:Buyer Details|Seller Details)[^]*?(No\.\s*\d+[^]*?)(?=SPXMY|Enjoy|Postcode)/is)
     }
 
     if (!addressMatch) {
-      // Try even more relaxed - just get text after Address: for reasonable length
+      // Pattern 6: Relaxed - text after Address:
       addressMatch = text.match(/Address[:\s]+([^\n]{10,200})/is)
     }
 
