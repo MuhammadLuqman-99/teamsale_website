@@ -206,23 +206,31 @@ function parseShopeeAWB(text: string): any {
 
     // Extract Order ID - handle various formats
     // Try multiple patterns in order of specificity
-    let orderIdMatch = text.match(/Order ID[:\s]*([A-Z0-9]{10,15})/i)
+    let orderIdMatch = text.match(/Order ID[:\s]*([A-Z0-9]{10,15})(?!\d)/i)
     if (!orderIdMatch) {
       // Try with spaces: "Order ID : 250915J40YG6B1" or scattered text
-      orderIdMatch = text.match(/Order\s+ID[:\s]+([A-Z0-9]{10,15})/i)
+      orderIdMatch = text.match(/Order\s+ID[:\s]+([A-Z0-9]{10,15})(?!\d)/i)
     }
     if (!orderIdMatch) {
-      // Try finding just alphanumeric string starting with digits (e.g., 250915J40YG6B1)
-      orderIdMatch = text.match(/(\d{6}[A-Z0-9]{4,9})/i)
+      // Try finding alphanumeric starting with 6 digits, NOT ending with tracking suffix
+      // Match pattern like 250915J40YG6B1 but NOT 05826637837B (which is part of SPXMY tracking)
+      orderIdMatch = text.match(/\b((?:25|24|23)\d{4}[A-Z0-9]{6,9})\b/i)
     }
     if (!orderIdMatch) {
-      // Try 15-digit numeric only (old format)
-      orderIdMatch = text.match(/(?:Order ID[:\s]*)?(\d{15})/)
+      // Try 15-digit numeric only (old format) - not starting with 0
+      orderIdMatch = text.match(/(?:Order ID[:\s]*)?\b([1-9]\d{14})\b/)
     }
 
     if (orderIdMatch) {
-      data.orderId = orderIdMatch[1].replace(/\s/g, '')
-      console.log('✅ Order ID found:', data.orderId)
+      let orderId = orderIdMatch[1].replace(/\s/g, '')
+      // Make sure it's not just part of tracking number
+      if (!orderId.match(/^0\d+[A-Z]$/)) {
+        data.orderId = orderId
+        console.log('✅ Order ID found:', data.orderId)
+      } else {
+        data.orderId = 'N/A'
+        console.log('❌ Order ID appears to be tracking suffix, ignored')
+      }
     } else {
       data.orderId = 'N/A'
       console.log('❌ Order ID not found')
@@ -295,13 +303,24 @@ function parseShopeeAWB(text: string): any {
       console.log('❌ Phone not found')
     }
 
-    // Extract Address from "Recipient Details" section
+    // Extract Address from "Recipient Details" section or scattered text
     // Try multiple patterns for address extraction
     let addressMatch = text.match(/Recipient Details[^]*?Address[:\s]+(.+?)(?=\s*Postcode[:\s]*\d{5}|Enjoy|Scan)/is)
 
     if (!addressMatch) {
-      // Try simpler pattern without Recipient Details
+      // Try finding address near "No." pattern (common Malaysian address format)
+      // Pattern: "No. 29, Cabang 3 Manek Urai, Olak Jeram, Kuala Krai, Kelantan"
+      addressMatch = text.match(/\b(No\.\s*\d+[^]*?(?:[A-Z][a-z]+[,\s]+){2,}[A-Z][a-z]+)\b/i)
+    }
+
+    if (!addressMatch) {
+      // Try simpler pattern: Address: ... until Postcode
       addressMatch = text.match(/Address[:\s]+(.+?)(?=\s*Postcode[:\s]*\d{5})/is)
+    }
+
+    if (!addressMatch) {
+      // Try finding text between two tracking numbers or before SPXMY
+      addressMatch = text.match(/(?:Buyer Details|Seller Details)[^]*?(No\.\s*\d+[^]*?)(?=SPXMY|Enjoy|Postcode)/is)
     }
 
     if (!addressMatch) {
@@ -314,18 +333,26 @@ function parseShopeeAWB(text: string): any {
         .replace(/Name[:\s]+[A-Za-z\s]+/gi, '') // Remove any "Name:" labels
         .replace(/Order ID[:\s]+[A-Z0-9]+/gi, '') // Remove Order ID if mixed in
         .replace(/Postcode[:\s]+\d{5}/gi, '') // Remove Postcode label
+        .replace(/SPXMY\d+[A-Z]?/gi, '') // Remove tracking numbers
+        .replace(/Enjoy.*?items!/gi, '') // Remove promo text
         .replace(/\n/g, ' ')
         .replace(/\s+/g, ' ')
         .trim()
 
       // Clean up if address starts with labels
-      addr = addr.replace(/^(Name|Order ID|Postcode)[:\s]+/i, '')
+      addr = addr.replace(/^(Name|Order ID|Postcode|Address)[:\s]+/i, '')
 
-      // Remove trailing "Postcode" or "Enjoy" text
-      addr = addr.replace(/\s*(Postcode|Enjoy|Scan).*$/i, '')
+      // Remove trailing unwanted text
+      addr = addr.replace(/\s*(Postcode|Enjoy|Scan|Track|powered|delivery).*$/i, '')
 
-      data.customerAddress = addr
-      console.log('✅ Address found:', data.customerAddress)
+      // Only accept if address is reasonable length
+      if (addr.length >= 10 && addr.length <= 300) {
+        data.customerAddress = addr
+        console.log('✅ Address found:', data.customerAddress)
+      } else {
+        data.customerAddress = 'Address too short or invalid'
+        console.log('❌ Address invalid length:', addr.length, 'chars')
+      }
     } else {
       data.customerAddress = 'Address not found'
       console.log('❌ Address not found')
