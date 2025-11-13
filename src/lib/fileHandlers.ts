@@ -326,20 +326,25 @@ function getDominantSKU(structuredProducts: StructuredProduct[]): string {
   return dominant.sku;
 }
 
-// Save orders to Firebase
-export async function saveOrdersToFirebase(orders: OrderData[]): Promise<{ successCount: number; errorCount: number }> {
-  let successCount = 0;
-  let errorCount = 0;
+// Save orders to Firebase (with upsert logic - update if exists, create if not)
+export async function saveOrdersToFirebase(orders: OrderData[]): Promise<{
+  successCount: number;
+  errorCount: number;
+  createdCount: number;
+  updatedCount: number;
+}> {
+  // Use upsertOrders for bulk operation
+  const { upsertOrders } = await import('./firestore');
+  const result = await upsertOrders(orders);
 
-  const promises = orders.map(order =>
-    addOrder(order)
-      .then(() => successCount++)
-      .catch(err => {
-        console.error('Gagal menyimpan order:', order.nombor_po_invoice, err);
-        errorCount++;
-      })
-  );
+  const createdCount = result.createdCount;
+  const updatedCount = result.updatedCount;
+  const errorCount = result.errorCount;
+  const successCount = createdCount + updatedCount;
 
-  await Promise.all(promises);
-  return { successCount, errorCount };
+  if (result.errors.length > 0) {
+    console.error('Errors during bulk upsert:', result.errors);
+  }
+
+  return { successCount, errorCount, createdCount, updatedCount };
 }

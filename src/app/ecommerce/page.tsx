@@ -108,10 +108,15 @@ export default function EcommercePage() {
         throw new Error('Tiada data order yang sah ditemui dalam fail.')
       }
 
-      const { successCount, errorCount } = await saveOrdersToFirebase(orders)
+      const { successCount, errorCount, createdCount, updatedCount } = await saveOrdersToFirebase(orders)
 
       setSuccess(true)
-      setSuccessMessage(`${successCount} order dari fail ${fileSource} telah disimpan. ${errorCount > 0 ? `Gagal: ${errorCount}.` : ''}`)
+      let message = `✅ ${successCount} order berjaya diproses dari fail ${fileSource}!\n`
+      if (createdCount > 0) message += `📝 ${createdCount} order baru ditambah\n`
+      if (updatedCount > 0) message += `🔄 ${updatedCount} order dikemaskini\n`
+      if (errorCount > 0) message += `❌ ${errorCount} order gagal`
+
+      setSuccessMessage(message)
 
       setTimeout(() => {
         setSuccess(false)

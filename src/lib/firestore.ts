@@ -2,6 +2,8 @@ import {
   collection,
   getDocs,
   addDoc,
+  updateDoc,
+  doc,
   query,
   where,
   orderBy,
@@ -265,6 +267,103 @@ export async function addOrder(orderData: Omit<OrderData, 'id'>): Promise<string
     console.error('Error adding order:', error);
     throw error;
   }
+}
+
+// Update existing order
+export async function updateOrder(orderId: string, orderData: Partial<OrderData>): Promise<void> {
+  try {
+    const orderRef = doc(db, 'orderData', orderId);
+    await updateDoc(orderRef, {
+      ...orderData,
+      updatedAt: Timestamp.now()
+    });
+  } catch (error) {
+    console.error('Error updating order:', error);
+    throw error;
+  }
+}
+
+// Find order by invoice number
+export async function findOrderByInvoice(invoiceNumber: string): Promise<OrderData | null> {
+  try {
+    const ordersRef = collection(db, 'orderData');
+    const q = query(ordersRef, where('nombor_po_invoice', '==', invoiceNumber));
+    const querySnapshot = await getDocs(q);
+
+    if (querySnapshot.empty) {
+      return null;
+    }
+
+    const doc = querySnapshot.docs[0];
+    return {
+      id: doc.id,
+      ...doc.data()
+    } as OrderData;
+  } catch (error) {
+    console.error('Error finding order by invoice:', error);
+    throw error;
+  }
+}
+
+// Upsert order (update if exists, create if not)
+export async function upsertOrder(orderData: Omit<OrderData, 'id'>): Promise<{
+  action: 'created' | 'updated';
+  orderId: string;
+}> {
+  try {
+    // Check if order with this invoice number already exists
+    const existingOrder = await findOrderByInvoice(orderData.nombor_po_invoice);
+
+    if (existingOrder && existingOrder.id) {
+      // Update existing order
+      await updateOrder(existingOrder.id, orderData);
+      return {
+        action: 'updated',
+        orderId: existingOrder.id
+      };
+    } else {
+      // Create new order
+      const newOrderId = await addOrder(orderData);
+      return {
+        action: 'created',
+        orderId: newOrderId
+      };
+    }
+  } catch (error) {
+    console.error('Error upserting order:', error);
+    throw error;
+  }
+}
+
+// Bulk upsert orders
+export async function upsertOrders(
+  orders: Omit<OrderData, 'id'>[]
+): Promise<{
+  createdCount: number;
+  updatedCount: number;
+  errorCount: number;
+  errors: string[];
+}> {
+  let createdCount = 0;
+  let updatedCount = 0;
+  let errorCount = 0;
+  const errors: string[] = [];
+
+  for (const order of orders) {
+    try {
+      const result = await upsertOrder(order);
+      if (result.action === 'created') {
+        createdCount++;
+      } else {
+        updatedCount++;
+      }
+    } catch (error: any) {
+      errorCount++;
+      errors.push(`Failed to save order ${order.nombor_po_invoice}: ${error.message}`);
+    }
+  }
+
+  return { createdCount, updatedCount, errorCount, errors };
 }
 
 // Add marketing data
