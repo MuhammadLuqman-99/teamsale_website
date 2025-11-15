@@ -65,7 +65,15 @@ export default function OrdersPage() {
   })
 
   // Calculate product statistics from PDF invoices
-  const productStats = orders.reduce((acc, order) => {
+  interface ProductStat {
+    name: string;
+    totalQuantity: number;
+    totalRevenue: number;
+    orderCount: number;
+    type: string;
+  }
+
+  const productStats = orders.reduce((acc: Record<string, ProductStat>, order) => {
     if (order.structuredProducts && order.structuredProducts.length > 0) {
       order.structuredProducts.forEach((product: any) => {
         const key = product.name || 'Unknown Product'
@@ -99,10 +107,10 @@ export default function OrdersPage() {
       acc[key].totalRevenue += (order.total_rm || 0)
     }
     return acc
-  }, {} as any)
+  }, {} as Record<string, ProductStat>)
 
-  const topProducts = Object.values(productStats)
-    .sort((a: any, b: any) => b.totalRevenue - a.totalRevenue)
+  const topProducts: ProductStat[] = Object.values(productStats)
+    .sort((a, b) => b.totalRevenue - a.totalRevenue)
     .slice(0, 5)
 
   const exportToCSV = () => {
