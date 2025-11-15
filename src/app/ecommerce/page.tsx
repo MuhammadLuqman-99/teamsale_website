@@ -143,35 +143,86 @@ export default function EcommercePage() {
     setErrorMessage('')
     setSuccess(false)
     const orders: ExtractedAWBOrder[] = []
+    let errorMessages: string[] = []
+
+    console.log(`🚀 Starting AWB upload for ${files.length} file(s)`)
 
     try {
       for (let i = 0; i < files.length; i++) {
         const file = files[i]
+        console.log(`📁 Processing file ${i + 1}/${files.length}: ${file.name} (${file.size} bytes)`)
 
         if (file.type !== 'application/pdf') {
-          setErrorMessage(`File ${file.name} bukan PDF. Sila upload PDF sahaja.`)
+          const errorMsg = `File ${file.name} bukan PDF. Sila upload PDF sahaja.`
+          console.error(`❌ ${errorMsg}`)
+          errorMessages.push(errorMsg)
           continue
         }
 
-        // Read file as base64
-        const reader = new FileReader()
-        const fileData = await new Promise<string>((resolve) => {
-          reader.onload = (e) => resolve(e.target?.result as string)
-          reader.readAsDataURL(file)
-        })
+        // Validate file size (max 10MB)
+        if (file.size > 10 * 1024 * 1024) {
+          const errorMsg = `File ${file.name} terlalu besar. Maksimum 10MB.`
+          console.error(`❌ ${errorMsg}`)
+          errorMessages.push(errorMsg)
+          continue
+        }
 
-        // Extract data from PDF
-        const extractedData = await extractAWBData(fileData)
-        if (extractedData) {
-          orders.push(extractedData)
+        try {
+          // Read file as base64
+          console.log(`📖 Reading ${file.name}...`)
+          const reader = new FileReader()
+          const fileData = await new Promise<string>((resolve, reject) => {
+            reader.onload = (e) => {
+              if (e.target?.result) {
+                resolve(e.target.result as string)
+              } else {
+                reject(new Error('FileReader failed to read file'))
+              }
+            }
+            reader.onerror = () => reject(new Error('FileReader error'))
+            reader.readAsDataURL(file)
+          })
+
+          console.log(`✅ ${file.name} read successfully. Base64 length: ${fileData.length}`)
+
+          // Extract data from PDF
+          console.log(`🔍 Extracting data from ${file.name}...`)
+          const extractedData = await extractAWBData(fileData)
+
+          if (extractedData) {
+            console.log(`✅ Data extracted from ${file.name}:`, extractedData)
+            orders.push(extractedData)
+          } else {
+            const errorMsg = `Gagal extract data dari ${file.name} - format mungkin tidak sesuai`
+            console.error(`❌ ${errorMsg}`)
+            errorMessages.push(errorMsg)
+          }
+        } catch (fileError: any) {
+          const errorMsg = `Error processing ${file.name}: ${fileError.message}`
+          console.error(`❌ ${errorMsg}`)
+          errorMessages.push(errorMsg)
         }
       }
 
-      setExtractedAWBOrders(orders)
-      setSuccess(true)
-      setSuccessMessage(`Berjaya extract ${orders.length} order dari ${files.length} PDF AWB!`)
+      if (orders.length > 0) {
+        setExtractedAWBOrders(orders)
+        setSuccess(true)
+        let successMsg = `✅ Berjaya extract ${orders.length} order dari ${files.length} PDF AWB!`
+        if (errorMessages.length > 0) {
+          successMsg += `\n⚠️ ${errorMessages.length} file gagal diproses`
+        }
+        setSuccessMessage(successMsg)
+      } else {
+        // No successful extractions
+        if (errorMessages.length > 0) {
+          setErrorMessage(`Tiada data berjaya diekstrak.\n\n${errorMessages.join('\n')}`)
+        } else {
+          setErrorMessage('Tiada data dapat diekstrak dari PDF. Sila pastikan PDF adalah dari TikTok Shop atau Shopee.')
+        }
+      }
     } catch (err: any) {
-      setErrorMessage(`Error: ${err.message}`)
+      console.error('❌ Unexpected error in AWB upload:', err)
+      setErrorMessage(`Error tidak dijangka: ${err.message}`)
     } finally {
       setProcessing(false)
       // Reset file input
@@ -771,15 +822,37 @@ export default function EcommercePage() {
       <Script
         src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"
         strategy="afterInteractive"
+        onError={() => {
+          console.error('❌ PDF.js library failed to load')
+        }}
+        onLoad={() => {
+          console.log('✅ PDF.js library loaded successfully')
+          if (typeof window !== 'undefined' && (window as any).pdfjsLib) {
+            (window as any).pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+            console.log('✅ PDF.js worker configured')
+          } else {
+            console.error('❌ PDF.js not available after load')
+          }
+        }}
       />
       <Script
         id="pdfjs-config"
         strategy="afterInteractive"
         dangerouslySetInnerHTML={{
           __html: `
-            if (typeof pdfjsLib !== 'undefined') {
-              pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+            // Wait for PDF.js to be available
+            function waitForPDFJS() {
+              if (typeof pdfjsLib !== 'undefined') {
+                console.log('✅ PDF.js detected and configured');
+                pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+              } else {
+                console.log('⏳ Waiting for PDF.js to load...');
+                setTimeout(waitForPDFJS, 100);
+              }
             }
+
+            // Start waiting after a short delay to ensure script has time to load
+            setTimeout(waitForPDFJS, 500);
           `
         }}
       />

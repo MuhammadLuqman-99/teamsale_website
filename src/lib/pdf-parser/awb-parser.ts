@@ -62,16 +62,37 @@ export async function extractAWBData(pdfBase64: string): Promise<AWBData | null>
 async function extractTextFromPDF(pdfBase64: string): Promise<string> {
   try {
     // Check if pdfjs is loaded
-    if (typeof window === 'undefined' || !(window as any).pdfjsLib) {
-      throw new Error('PDF.js library not loaded. Pastikan library loaded di page.')
+    if (typeof window === 'undefined') {
+      throw new Error('Running on server side - PDF extraction must be done on client')
     }
 
     const pdfjsLib = (window as any).pdfjsLib
+    if (!pdfjsLib) {
+      console.error('❌ PDF.js not loaded. Checking global scope...')
+      console.log('Window object keys:', Object.keys(window).filter(k => k.includes('pdf')))
+      throw new Error('PDF.js library not loaded. Pastikan library loaded di page.')
+    }
+
     console.log('📚 PDF.js version:', pdfjsLib.version)
+    console.log('📚 PDF.js worker configured:', pdfjsLib.GlobalWorkerOptions.workerSrc)
+
+    // Validate base64 input
+    if (!pdfBase64 || typeof pdfBase64 !== 'string') {
+      throw new Error('Invalid PDF data - base64 string expected')
+    }
 
     // Convert base64 to array buffer
     const base64Data = pdfBase64.replace(/^data:application\/pdf;base64,/, '')
-    const binaryString = atob(base64Data)
+    console.log('🔍 Base64 data length:', base64Data.length)
+
+    let binaryString: string
+    try {
+      binaryString = atob(base64Data)
+    } catch (base64Error) {
+      console.error('❌ Base64 decode error:', base64Error)
+      throw new Error('Invalid base64 data - cannot decode')
+    }
+
     const bytes = new Uint8Array(binaryString.length)
     for (let i = 0; i < binaryString.length; i++) {
       bytes[i] = binaryString.charCodeAt(i)
@@ -79,24 +100,79 @@ async function extractTextFromPDF(pdfBase64: string): Promise<string> {
 
     console.log('📄 PDF size:', bytes.length, 'bytes')
 
-    // Load PDF
-    const loadingTask = pdfjsLib.getDocument({ data: bytes })
-    const pdf = await loadingTask.promise
+    // Validate PDF data - check for PDF signature
+    if (bytes.length < 4 || bytes[0] !== 0x25 || bytes[1] !== 0x50 || bytes[2] !== 0x44 || bytes[3] !== 0x46) {
+      console.warn('⚠️ PDF signature not found - may not be a valid PDF')
+      // Don't throw error yet, try to process anyway
+    }
 
-    console.log('📑 PDF pages:', pdf.numPages)
+    // Load PDF with more error handling
+    let pdf: any
+    try {
+      const loadingTask = pdfjsLib.getDocument({
+        data: bytes,
+        // Disable password handling for now
+        password: undefined
+      })
 
-    // Extract text from all pages
+      // Add progress listener
+      loadingTask.onProgress = (progress: any) => {
+        console.log(`📖 Loading PDF: ${Math.round(progress.loaded / progress.total * 100)}%`)
+      }
+
+      pdf = await loadingTask.promise
+    } catch (pdfLoadError) {
+      console.error('❌ PDF loading error:', pdfLoadError)
+      throw new Error(`Failed to load PDF: ${pdfLoadError.message || 'Invalid PDF format'}`)
+    }
+
+    console.log('📑 PDF loaded successfully. Pages:', pdf.numPages)
+
+    if (pdf.numPages === 0) {
+      throw new Error('PDF has no pages')
+    }
+
+    // Extract text from all pages with better error handling
     let fullText = ''
     for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-      const page = await pdf.getPage(pageNum)
-      const textContent = await page.getTextContent()
-      const pageText = textContent.items.map((item: any) => item.str).join(' ')
-      fullText += pageText + '\n'
-      console.log(`📝 Page ${pageNum} text length:`, pageText.length)
+      try {
+        console.log(`📖 Processing page ${pageNum}/${pdf.numPages}...`)
+        const page = await pdf.getPage(pageNum)
+
+        console.log(`📐 Page ${pageNum} size: ${page.view[2]} x ${page.view[3]}`)
+
+        const textContent = await page.getTextContent()
+        console.log(`📝 Page ${pageNum} text items:`, textContent.items.length)
+
+        if (textContent.items.length === 0) {
+          console.warn(`⚠️ Page ${pageNum} has no extractable text`)
+        }
+
+        const pageText = textContent.items.map((item: any) => {
+          return item.str || ''
+        }).join(' ')
+
+        fullText += pageText + '\n'
+        console.log(`📝 Page ${pageNum} text length:`, pageText.length)
+
+        if (pageText.length > 0) {
+          console.log(`📄 Page ${pageNum} preview:`, pageText.substring(0, 150))
+        }
+      } catch (pageError) {
+        console.error(`❌ Error processing page ${pageNum}:`, pageError)
+        // Continue with other pages
+        continue
+      }
     }
 
     console.log('✅ Total extracted text length:', fullText.length)
-    console.log('📄 Text preview:', fullText.substring(0, 300))
+
+    if (fullText.length === 0) {
+      console.warn('⚠️ No text extracted from PDF - may be image-based PDF')
+      throw new Error('No extractable text found in PDF - may be a scanned/image PDF')
+    }
+
+    console.log('📄 Full text preview (first 500 chars):', fullText.substring(0, 500))
 
     return fullText
   } catch (error) {
