@@ -282,7 +282,9 @@ export default function OrdersAnalytics({ orders, filteredOrders }: OrdersAnalyt
                 {chartData.slice(0, 5).map((item, index) => (
                   <tr key={index} className="border-b border-gray-100">
                     <td className="py-2 text-gray-900">{item.name}</td>
-                    <td className="py-2 text-gray-600 text-right">{item.orders || item.value}</td>
+                    <td className="py-2 text-gray-600 text-right">
+                    {chartType === 'revenue' ? item.value : (item as any).orders || item.value}
+                  </td>
                     <td className="py-2 text-gray-600 text-right">
                       RM {(item.revenue || 0).toLocaleString('ms-MY', { minimumFractionDigits: 2 })}
                     </td>
