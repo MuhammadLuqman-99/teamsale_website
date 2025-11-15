@@ -73,10 +73,32 @@ export function parseCSV(csvText: string, source: string): OrderData[] {
           team_sale: 'Shopee',
           platform: 'Shopee'
         };
+
+        // Extract additional Shopee data
         if (rawData['Created Time']) {
           const [datePart] = rawData['Created Time'].split(' ');
           const [day, month, year] = datePart.split('/');
           order.tarikh = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+        }
+
+        // Add shipping address if available
+        if (rawData['Full Address'] || rawData['Recipient Address']) {
+          order.alamat_penghantaran = rawData['Full Address'] || rawData['Recipient Address'];
+        }
+
+        // Add tracking number if available
+        if (rawData['Tracking Number'] || rawData['Tracking No.']) {
+          order.tracking_number = rawData['Tracking Number'] || rawData['Tracking No.'];
+        }
+
+        // Add payment method
+        if (rawData['Payment Method']) {
+          order.payment_method = rawData['Payment Method'];
+        }
+
+        // Add shipping option
+        if (rawData['Shipping Option']) {
+          order.shipping_option = rawData['Shipping Option'];
         }
         break;
 
@@ -91,8 +113,35 @@ export function parseCSV(csvText: string, source: string): OrderData[] {
           team_sale: 'Tiktok',
           platform: 'Tiktok'
         };
+
+        // Extract additional TikTok data
         if (rawData['Created At']) {
           order.tarikh = new Date(rawData['Created At']).toISOString().split('T')[0];
+        }
+
+        // Add shipping address if available
+        if (rawData['Shipping Address'] || rawData['Full Address'] || rawData['Receiver Address']) {
+          order.alamat_penghantaran = rawData['Shipping Address'] || rawData['Full Address'] || rawData['Receiver Address'];
+        }
+
+        // Add tracking number if available
+        if (rawData['Tracking Number'] || rawData['Tracking ID']) {
+          order.tracking_number = rawData['Tracking Number'] || rawData['Tracking ID'];
+        }
+
+        // Add payment method
+        if (rawData['Payment Method'] || rawData['Payment Type']) {
+          order.payment_method = rawData['Payment Method'] || rawData['Payment Type'];
+        }
+
+        // Add quantity if available
+        if (rawData['Quantity'] || rawData['Qty']) {
+          order.quantity = parseInt(rawData['Quantity'] || rawData['Qty']) || 1;
+        }
+
+        // Add unit price if available
+        if (rawData['Unit Price'] || rawData['Price Per Item']) {
+          order.unit_price = parseFloat(rawData['Unit Price'] || rawData['Price Per Item']) || 0;
         }
         break;
 

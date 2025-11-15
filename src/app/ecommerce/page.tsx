@@ -37,6 +37,7 @@ export default function EcommercePage() {
   const [errorMessage, setErrorMessage] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
   const [extractedAWBOrders, setExtractedAWBOrders] = useState<ExtractedAWBOrder[]>([])
+  const [extractedOrders, setExtractedOrders] = useState<OrderData[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
   const awbInputRef = useRef<HTMLInputElement>(null)
 
@@ -83,6 +84,7 @@ export default function EcommercePage() {
     setProcessing(true)
     setErrorMessage('')
     setSuccess(false)
+    setExtractedOrders([]) // Clear previous extracted orders
 
     try {
       let orders
@@ -108,10 +110,46 @@ export default function EcommercePage() {
         throw new Error('Tiada data order yang sah ditemui dalam fail.')
       }
 
-      const { successCount, errorCount, createdCount, updatedCount } = await saveOrdersToFirebase(orders)
+      // Store extracted orders for preview instead of directly saving
+      setExtractedOrders(orders)
 
       setSuccess(true)
-      let message = `✅ ${successCount} order berjaya diproses dari fail ${fileSource}!\n`
+      let message = `✅ ${orders.length} order berjaya diekstrak dari fail ${fileSource}!\n`
+      message += `📋 Sila semak preview di bawah dan klik "Save Orders" untuk simpan ke database.`
+
+      setSuccessMessage(message)
+
+    } catch (error: any) {
+      setErrorMessage(error.message || 'Ralat semasa memproses fail')
+    } finally {
+      setProcessing(false)
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    }
+  }
+
+  const handleSaveExtractedOrders = async () => {
+    if (extractedOrders.length === 0) return
+
+    const confirm = window.confirm(
+      `⚠️ Anda akan save ${extractedOrders.length} order ke database.\n\n` +
+      `Pastikan data yang dipaparkan adalah betul.\n\n` +
+      `Teruskan?`
+    )
+
+    if (!confirm) return
+
+    setProcessing(true)
+    setErrorMessage('')
+    setSuccess(false)
+
+    try {
+      const { successCount, errorCount, createdCount, updatedCount } = await saveOrdersToFirebase(extractedOrders)
+
+      setExtractedOrders([]) // Clear after successful save
+      setSuccess(true)
+      let message = `✅ ${successCount} order berjaya disimpan!\n`
       if (createdCount > 0) message += `📝 ${createdCount} order baru ditambah\n`
       if (updatedCount > 0) message += `🔄 ${updatedCount} order dikemaskini\n`
       if (errorCount > 0) message += `❌ ${errorCount} order gagal`
@@ -124,12 +162,9 @@ export default function EcommercePage() {
       }, 5000)
 
     } catch (error: any) {
-      setErrorMessage(error.message || 'Ralat semasa memproses fail')
+      setErrorMessage(error.message || 'Gagal menyimpan order')
     } finally {
       setProcessing(false)
-      if (fileInputRef.current) {
-        fileInputRef.current.value = ''
-      }
     }
   }
 
@@ -486,6 +521,148 @@ export default function EcommercePage() {
                           <p className="text-sm text-red-700">{errorMessage}</p>
                         </div>
                       </div>
+                    </motion.div>
+                  )}
+
+                  {/* Extracted Orders Preview */}
+                  {extractedOrders.length > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="mt-6"
+                    >
+                      <Card className="bg-gray-50 border-2 border-gray-200">
+                        <div className="p-6">
+                          <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-xl font-bold text-gray-900">
+                              Extracted Orders ({extractedOrders.length})
+                            </h3>
+                            <Button
+                              onClick={handleSaveExtractedOrders}
+                              disabled={processing}
+                              className="bg-green-600 hover:bg-green-700"
+                            >
+                              💾 Save All Orders
+                            </Button>
+                          </div>
+
+                          <div className="space-y-4 max-h-96 overflow-y-auto">
+                            {extractedOrders.map((order, index) => (
+                              <div key={index} className="bg-white rounded-lg p-4 border border-gray-200">
+                                <div className="flex justify-between items-start mb-3">
+                                  <div className="flex-1">
+                                    <h4 className="font-semibold text-lg text-gray-900">
+                                      {order.nama_customer || 'Unknown Customer'}
+                                    </h4>
+                                    <p className="text-sm text-gray-600">
+                                      Order: {order.nombor_po_invoice || 'N/A'}
+                                    </p>
+                                  </div>
+                                  <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">
+                                    {order.platform || 'Unknown'}
+                                  </span>
+                                </div>
+
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                                  <div>
+                                    <p className="text-xs text-gray-500">Date</p>
+                                    <p className="font-semibold text-sm">{order.tarikh || 'N/A'}</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-xs text-gray-500">Total</p>
+                                    <p className="font-semibold text-sm">RM {order.total_rm?.toFixed(2) || '0.00'}</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-xs text-gray-500">Team</p>
+                                    <p className="font-semibold text-sm">{order.team_sale || 'N/A'}</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-xs text-gray-500">Phone</p>
+                                    <p className="font-semibold text-sm">{order.nombor_phone || 'N/A'}</p>
+                                  </div>
+                                </div>
+
+                                <div className="mb-3">
+                                  <p className="text-xs text-gray-500 mb-1">Product Details</p>
+                                  <p className="text-sm bg-gray-50 p-2 rounded border">
+                                    {order.jenis_order || order.code_kain || 'N/A'}
+                                  </p>
+                                </div>
+
+                                {/* Additional extracted information */}
+                                {(order.alamat_penghantaran || order.tracking_number || order.payment_method || order.shipping_option || order.quantity || order.unit_price) && (
+                                  <div className="mb-3 p-3 bg-green-50 rounded border border-green-200">
+                                    <p className="text-xs text-green-600 font-medium mb-2">📋 Additional Details</p>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                                      {order.tracking_number && (
+                                        <div>
+                                          <span className="text-gray-600">Tracking:</span>
+                                          <span className="ml-1 font-medium">{order.tracking_number}</span>
+                                        </div>
+                                      )}
+                                      {order.payment_method && (
+                                        <div>
+                                          <span className="text-gray-600">Payment:</span>
+                                          <span className="ml-1 font-medium">{order.payment_method}</span>
+                                        </div>
+                                      )}
+                                      {order.shipping_option && (
+                                        <div>
+                                          <span className="text-gray-600">Shipping:</span>
+                                          <span className="ml-1 font-medium">{order.shipping_option}</span>
+                                        </div>
+                                      )}
+                                      {order.quantity && (
+                                        <div>
+                                          <span className="text-gray-600">Quantity:</span>
+                                          <span className="ml-1 font-medium">{order.quantity}</span>
+                                        </div>
+                                      )}
+                                      {order.unit_price && (
+                                        <div>
+                                          <span className="text-gray-600">Unit Price:</span>
+                                          <span className="ml-1 font-medium">RM {order.unit_price.toFixed(2)}</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                    {order.alamat_penghantaran && (
+                                      <div className="mt-2 pt-2 border-t border-green-300">
+                                        <p className="text-gray-600 mb-1">Shipping Address:</p>
+                                        <p className="text-xs bg-white p-2 rounded border">{order.alamat_penghantaran}</p>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+
+                                {/* Show products if available (for PDF invoices) */}
+                                {order.structuredProducts && order.structuredProducts.length > 0 && (
+                                  <div className="mt-3 p-3 bg-blue-50 rounded border border-blue-200">
+                                    <p className="text-xs text-blue-600 font-medium mb-2">
+                                      📦 Products ({order.totalQuantity || 0} items)
+                                    </p>
+                                    <div className="space-y-1">
+                                      {order.structuredProducts.map((product: any, pIndex: number) => (
+                                        <div key={pIndex} className="text-sm">
+                                          <span className="font-medium">{product.name}</span>
+                                          <span className="text-gray-600 ml-2">
+                                            x{product.totalQty} ({product.type})
+                                          </span>
+                                          {product.sizeBreakdown && product.sizeBreakdown.length > 0 && (
+                                            <div className="text-xs text-gray-500 ml-4">
+                                              Sizes: {product.sizeBreakdown.map((s: any) =>
+                                                `${s.size}:${s.quantity}`).join(', ')}
+                                            </div>
+                                          )}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </Card>
                     </motion.div>
                   )}
                 </Card>

@@ -29,6 +29,13 @@ export interface OrderData {
   products?: any[];
   structuredProducts?: any[];
   totalQuantity?: number;
+  // Additional fields for enhanced data extraction
+  alamat_penghantaran?: string;
+  tracking_number?: string;
+  payment_method?: string;
+  shipping_option?: string;
+  quantity?: number;
+  unit_price?: number;
 }
 
 export interface MarketingData {
