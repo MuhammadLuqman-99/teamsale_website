@@ -149,7 +149,7 @@ export default function OrdersAnalytics({ orders, filteredOrders }: OrdersAnalyt
               <p className="text-sm text-gray-600">Total Orders</p>
               <p className="text-2xl font-bold text-gray-900">{analytics.totalOrders}</p>
               {filteredOrders.length < orders.length && (
-                <p className="text-xs text-gray-500">{filteredOrdersCount} filtered</p>
+                <p className="text-xs text-gray-500">{filteredOrders.length} filtered</p>
               )}
             </div>
           </div>
