@@ -286,7 +286,7 @@ export default function OrdersAnalytics({ orders, filteredOrders }: OrdersAnalyt
                     {chartType === 'revenue' ? item.value : (item as any).orders || item.value}
                   </td>
                     <td className="py-2 text-gray-600 text-right">
-                      RM {(item.revenue || 0).toLocaleString('ms-MY', { minimumFractionDigits: 2 })}
+                      RM {((chartType === 'revenue' || chartType === 'monthly') ? item.revenue : (item as any).revenue || 0).toLocaleString('ms-MY', { minimumFractionDigits: 2 })}
                     </td>
                   </tr>
                 ))}
