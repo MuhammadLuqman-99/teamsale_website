@@ -281,12 +281,17 @@ function parseShopeeAWB(text: string): any {
     let nameMatch = text.match(/Recipient Details[^]*?Name[:\s]+([A-Za-z][A-Za-z\s]{1,50}?)(?=\s+Address[:\s]|Postcode[:\s]|\d{5})/i)
 
     if (!nameMatch) {
-      // Pattern 2: Look for capitalized name before "Address:" or postcode
+      // Pattern 2: For addresses like "Kuarters Warden, Asrama Smk Kuala Krai" - extract first part as name if it looks like a person
+      nameMatch = text.match(/Buyer Details\s*\(FWD\)[^\n]*?\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?),/i)
+    }
+
+    if (!nameMatch) {
+      // Pattern 3: Look for capitalized name before "Address:" or postcode
       nameMatch = text.match(/\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,3})\s+(?:Address|No\.\s*\d+|\d{5})/i)
     }
 
     if (!nameMatch) {
-      // Pattern 3: Generic Name: label
+      // Pattern 4: Generic Name: label
       nameMatch = text.match(/Name[:\s]+([A-Za-z][A-Za-z\s]{2,30})(?=\s+Address|Order ID|\d{5})/i)
     }
 
@@ -294,8 +299,15 @@ function parseShopeeAWB(text: string): any {
       data.customerName = nameMatch[1].trim()
       console.log('✅ Customer Name found:', data.customerName)
     } else {
-      data.customerName = 'N/A'
-      console.log('❌ Customer Name not found')
+      // For institutional/organization addresses, use first part as "name"
+      const buyerDetails = text.match(/Buyer Details\s*\(FWD\)[^\n]*?\s+([^,]+),/i)
+      if (buyerDetails) {
+        data.customerName = buyerDetails[1].trim()
+        console.log('✅ Using institutional name:', data.customerName)
+      } else {
+        data.customerName = 'N/A'
+        console.log('❌ Customer Name not found')
+      }
     }
 
     // Extract Phone - look for Malaysian phone numbers
@@ -309,16 +321,21 @@ function parseShopeeAWB(text: string): any {
     }
 
     // Extract Address from "Recipient Details" or "Buyer Details" section or scattered text
-    // Pattern 1: From Recipient Details
-    let addressMatch = text.match(/Recipient Details[^]*?Address[:\s]+(.+?)(?=\s*Postcode[:\s]*\d{5}|Enjoy|Scan)/is)
+    // Pattern 1: From "Buyer Details (FWD)" - extract the full address text
+    let addressMatch = text.match(/Buyer Details\s*\(FWD\)[^\n]*?\s+([^,]+,\s*[^,]+,\s*\d{5},\s*[^,]+,\s*[^,]+)/i)
 
     if (!addressMatch) {
-      // Pattern 2: From "Buyer Details (FWD)" - text between it and "NDD" or tracking
-      addressMatch = text.match(/Buyer Details\s*\(FWD\)[^\n]*?\s+(No\.\s*\d+[^]*?)(?=\s*(?:NDD|N\s*D\s*D|SPXMY|Enjoy))/is)
+      // Pattern 2: Alternative Buyer Details pattern - extract everything after "Buyer Details (FWD)"
+      addressMatch = text.match(/Buyer Details\s*\(FWD\)[^\n]*?\s+([^,]+[^]*?)(?=\s*(?:NDD|N\s*D\s*D|SPXMY|Enjoy|HVI))/is)
     }
 
     if (!addressMatch) {
-      // Pattern 3: Malaysian address with "No." format
+      // Pattern 3: From Recipient Details
+      addressMatch = text.match(/Recipient Details[^]*?Address[:\s]+(.+?)(?=\s*Postcode[:\s]*\d{5}|Enjoy|Scan)/is)
+    }
+
+    if (!addressMatch) {
+      // Pattern 4: Malaysian address with "No." format
       addressMatch = text.match(/\b(No\.\s*\d+,?\s+[^,]+,\s+[^,]+,\s+[^,]+,\s+[A-Z][a-z]+)\b/i)
     }
 
@@ -363,9 +380,23 @@ function parseShopeeAWB(text: string): any {
         console.log('❌ Address invalid length:', addr.length, 'chars')
       }
     } else {
-      data.customerAddress = 'Address not found'
-      console.log('❌ Address not found')
-      console.log('📄 Text sample for debug:', text.substring(0, 800))
+      // Fallback: Try to extract from the full text using a more relaxed pattern
+      console.log('📄 Trying fallback address extraction...')
+      const fallbackMatch = text.match(/Buyer Details[^]*?([A-Za-z][^,]*,\s*[^,]*,\s*\d{5}[^]*?)(?=\s*NDD|\s*SPXMY|\s*Enjoy|\s*HVI)/i)
+
+      if (fallbackMatch) {
+        let fallbackAddr = fallbackMatch[1]
+          .replace(/\n/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim()
+
+        data.customerAddress = fallbackAddr
+        console.log('✅ Fallback address found:', data.customerAddress)
+      } else {
+        data.customerAddress = 'Address not found'
+        console.log('❌ Address not found even with fallback')
+        console.log('📄 Text sample for debug:', text.substring(0, 800))
+      }
     }
 
     // Extract Postcode - look for "Postcode: 71700" or just 5 digits near address
