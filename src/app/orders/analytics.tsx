@@ -131,7 +131,7 @@ export default function OrdersAnalytics({ orders, filteredOrders }: OrdersAnalyt
               <p className="text-2xl font-bold text-gray-900">
                 RM {analytics.totalRevenue.toLocaleString('ms-MY', { minimumFractionDigits: 2 })}
               </p>
-              {filteredOrders.length < totalOrders && (
+              {filteredOrders.length < orders.length && (
                 <p className="text-xs text-gray-500">
                   RM {analytics.filteredRevenue.toLocaleString('ms-MY', { minimumFractionDigits: 2 })} filtered
                 </p>
@@ -148,7 +148,7 @@ export default function OrdersAnalytics({ orders, filteredOrders }: OrdersAnalyt
             <div>
               <p className="text-sm text-gray-600">Total Orders</p>
               <p className="text-2xl font-bold text-gray-900">{analytics.totalOrders}</p>
-              {filteredOrders.length < totalOrders && (
+              {filteredOrders.length < orders.length && (
                 <p className="text-xs text-gray-500">{filteredOrdersCount} filtered</p>
               )}
             </div>
