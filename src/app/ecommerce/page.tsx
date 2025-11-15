@@ -8,6 +8,7 @@ import Card from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import { detectCSVSource, parseCSV, parsePDFInvoice, saveOrdersToFirebase } from '@/lib/fileHandlers'
+import { OrderData } from '@/lib/firestore'
 import { addOrder, saveAWBOrders } from '@/lib/firestore'
 import { extractAWBData } from '@/lib/pdf-parser/awb-parser'
 
