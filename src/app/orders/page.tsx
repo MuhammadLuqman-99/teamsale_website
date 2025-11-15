@@ -14,6 +14,17 @@ export default function OrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<OrderData | null>(null)
   const [showDetails, setShowDetails] = useState(false)
 
+  // Advanced filtering states
+  const [dateRange, setDateRange] = useState<{ start: string; end: string }>({
+    start: '',
+    end: ''
+  })
+  const [selectedPlatform, setSelectedPlatform] = useState<string>('all')
+  const [selectedTeam, setSelectedTeam] = useState<string>('all')
+  const [minAmount, setMinAmount] = useState<string>('')
+  const [maxAmount, setMaxAmount] = useState<string>('')
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
+
   useEffect(() => {
     loadOrders()
   }, [])
@@ -52,16 +63,65 @@ export default function OrdersPage() {
     return orders.reduce((sum, order) => sum + (order.total_rm || 0), 0)
   }
 
+  // Get unique platforms and teams for filters
+  const getUniquePlatforms = () => {
+    const platforms = [...new Set(orders.map(order => order.platform).filter(Boolean))]
+    return platforms.sort()
+  }
+
+  const getUniqueTeams = () => {
+    const teams = [...new Set(orders.map(order => order.team_sale).filter(Boolean))]
+    return teams.sort()
+  }
+
+  // Clear all filters
+  const clearFilters = () => {
+    setDateRange({ start: '', end: '' })
+    setSelectedPlatform('all')
+    setSelectedTeam('all')
+    setMinAmount('')
+    setMaxAmount('')
+    setSearchTerm('')
+  }
+
+  // Check if any filters are active
+  const hasActiveFilters = () => {
+    return dateRange.start || dateRange.end || selectedPlatform !== 'all' ||
+           selectedTeam !== 'all' || minAmount || maxAmount || searchTerm
+  }
+
   const filteredOrders = orders.filter(order => {
     const searchLower = searchTerm.toLowerCase()
-    return (
+
+    // Search filter
+    const matchesSearch =
       order.nama_customer.toLowerCase().includes(searchLower) ||
       order.nombor_po_invoice.toLowerCase().includes(searchLower) ||
       order.team_sale.toLowerCase().includes(searchLower) ||
       order.platform.toLowerCase().includes(searchLower) ||
       order.jenis_order.toLowerCase().includes(searchLower) ||
       (order.code_kain && order.code_kain.toLowerCase().includes(searchLower))
-    )
+
+    // Date range filter
+    const matchesDateRange =
+      (!dateRange.start || order.tarikh >= dateRange.start) &&
+      (!dateRange.end || order.tarikh <= dateRange.end)
+
+    // Platform filter
+    const matchesPlatform =
+      selectedPlatform === 'all' || order.platform === selectedPlatform
+
+    // Team filter
+    const matchesTeam =
+      selectedTeam === 'all' || order.team_sale === selectedTeam
+
+    // Amount filter
+    const orderAmount = order.total_rm || 0
+    const matchesAmount =
+      (!minAmount || orderAmount >= parseFloat(minAmount)) &&
+      (!maxAmount || orderAmount <= parseFloat(maxAmount))
+
+    return matchesSearch && matchesDateRange && matchesPlatform && matchesTeam && matchesAmount
   })
 
   // Calculate product statistics from PDF invoices
@@ -282,9 +342,10 @@ export default function OrdersPage() {
             </Card>
           )}
 
-          {/* Search Bar */}
+          {/* Search Bar & Filters */}
           <Card className="p-4 mb-6">
-            <div className="flex items-center gap-3">
+            {/* Main Search Bar */}
+            <div className="flex items-center gap-3 mb-4">
               <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
@@ -302,7 +363,165 @@ export default function OrdersPage() {
                   </svg>
                 </button>
               )}
+
+              {/* Advanced Filters Toggle */}
+              <button
+                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors ${
+                  hasActiveFilters()
+                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                    : 'border-gray-300 text-gray-600 hover:border-gray-400'
+                }`}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                </svg>
+                Filters
+                {hasActiveFilters() && (
+                  <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">
+                    {[dateRange.start, dateRange.end, selectedPlatform !== 'all', selectedTeam !== 'all', minAmount, maxAmount].filter(Boolean).length}
+                  </span>
+                )}
+              </button>
+
+              {/* Clear Filters */}
+              {hasActiveFilters() && (
+                <button
+                  onClick={clearFilters}
+                  className="text-red-500 hover:text-red-700 text-sm font-medium"
+                >
+                  Clear All
+                </button>
+              )}
             </div>
+
+            {/* Advanced Filters Panel */}
+            {showAdvancedFilters && (
+              <div className="border-t pt-4 mt-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* Date Range */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                    <input
+                      type="date"
+                      value={dateRange.start}
+                      onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+                    <input
+                      type="date"
+                      value={dateRange.end}
+                      onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+
+                  {/* Platform Filter */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Platform</label>
+                    <select
+                      value={selectedPlatform}
+                      onChange={(e) => setSelectedPlatform(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="all">All Platforms</option>
+                      {getUniquePlatforms().map(platform => (
+                        <option key={platform} value={platform}>{platform}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Team Filter */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Team</label>
+                    <select
+                      value={selectedTeam}
+                      onChange={(e) => setSelectedTeam(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="all">All Teams</option>
+                      {getUniqueTeams().map(team => (
+                        <option key={team} value={team}>{team}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Min Amount */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Min Amount (RM)</label>
+                    <input
+                      type="number"
+                      value={minAmount}
+                      onChange={(e) => setMinAmount(e.target.value)}
+                      placeholder="0.00"
+                      min="0"
+                      step="0.01"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+
+                  {/* Max Amount */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Max Amount (RM)</label>
+                    <input
+                      type="number"
+                      value={maxAmount}
+                      onChange={(e) => setMaxAmount(e.target.value)}
+                      placeholder="99999.99"
+                      min="0"
+                      step="0.01"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Quick Filter Presets */}
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <button
+                    onClick={() => {
+                      const today = new Date()
+                      const lastWeek = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
+                      setDateRange({
+                        start: lastWeek.toISOString().split('T')[0],
+                        end: today.toISOString().split('T')[0]
+                      })
+                    }}
+                    className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-full text-sm font-medium text-gray-700"
+                  >
+                    Last 7 Days
+                  </button>
+                  <button
+                    onClick={() => {
+                      const today = new Date()
+                      const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate())
+                      setDateRange({
+                        start: lastMonth.toISOString().split('T')[0],
+                        end: today.toISOString().split('T')[0]
+                      })
+                    }}
+                    className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-full text-sm font-medium text-gray-700"
+                  >
+                    Last 30 Days
+                  </button>
+                  <button
+                    onClick={() => {
+                      const today = new Date()
+                      const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
+                      setDateRange({
+                        start: firstDayOfMonth.toISOString().split('T')[0],
+                        end: today.toISOString().split('T')[0]
+                      })
+                    }}
+                    className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-full text-sm font-medium text-gray-700"
+                  >
+                    This Month
+                  </button>
+                </div>
+              </div>
+            )}
           </Card>
 
           {/* Results Count */}
@@ -320,11 +539,22 @@ export default function OrdersPage() {
               <div className="text-center py-20">
                 <div className="text-6xl mb-4">📦</div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                  {searchTerm ? 'No orders found' : 'No orders yet'}
+                  {hasActiveFilters() ? 'No orders match your filters' : (orders.length === 0 ? 'No orders yet' : 'No orders found')}
                 </h3>
-                <p className="text-gray-600">
-                  {searchTerm ? 'Try adjusting your search term' : 'Start by adding your first order'}
+                <p className="text-gray-600 mb-4">
+                  {hasActiveFilters()
+                    ? 'Try adjusting your filters or search term'
+                    : (orders.length === 0 ? 'Start by adding your first order' : 'Try adjusting your search term')
+                  }
                 </p>
+                {hasActiveFilters() && (
+                  <button
+                    onClick={clearFilters}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Clear All Filters
+                  </button>
+                )}
               </div>
             ) : (
               <div className="overflow-x-auto">
