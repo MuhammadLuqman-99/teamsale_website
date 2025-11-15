@@ -205,16 +205,21 @@ function parseShopeeAWB(text: string): any {
     console.log('📄 Full text (COMPLETE):', text)
     console.log('📄 Text length:', text.length, 'chars')
 
-    // Extract Order ID - handle various formats
+    // Extract Order ID - enhanced for format like 251113M2SQ0GTF
     // Try multiple patterns in order of specificity
     let orderIdMatch = text.match(/Order ID[:\s]*([A-Z0-9]{10,15})(?!\d)/i)
     if (!orderIdMatch) {
-      // Try with spaces: "Order ID : 250915J40YG6B1" or scattered text
+      // Try with spaces: "Order ID : 251113M2SQ0GTF" or scattered text
       orderIdMatch = text.match(/Order\s+ID[:\s]+([A-Z0-9]{10,15})(?!\d)/i)
     }
     if (!orderIdMatch) {
+      // Try pattern for 15-digit alphanumeric order codes (like 251113M2SQ0GTF)
+      // Format: DDMMYY + 7-9 alphanumeric chars
+      orderIdMatch = text.match(/\b(\d{6}[A-Z0-9]{7,9})\b/i)
+    }
+    if (!orderIdMatch) {
       // Try finding alphanumeric starting with 6 digits, NOT ending with tracking suffix
-      // Match pattern like 250915J40YG6B1 but NOT 05826637837B (which is part of SPXMY tracking)
+      // Match pattern like 251113M2SQ0GTF but NOT 05826637837B (which is part of SPXMY tracking)
       orderIdMatch = text.match(/\b((?:25|24|23)\d{4}[A-Z0-9]{6,9})\b/i)
     }
     if (!orderIdMatch) {
@@ -224,13 +229,17 @@ function parseShopeeAWB(text: string): any {
 
     if (orderIdMatch) {
       let orderId = orderIdMatch[1].replace(/\s/g, '')
-      // Make sure it's not just part of tracking number
-      if (!orderId.match(/^0\d+[A-Z]$/)) {
+      // Additional validation to avoid tracking numbers
+      // Order IDs should be 13-15 chars, tracking suffixes are usually shorter
+      if (orderId.length >= 10 &&
+          !orderId.match(/^0\d+[A-Z]$/) &&
+          !orderId.startsWith('SPXMY') &&
+          !text.match(new RegExp(`SPXMY.*${orderId}`))) {
         data.orderId = orderId
         console.log('✅ Order ID found:', data.orderId)
       } else {
         data.orderId = 'N/A'
-        console.log('❌ Order ID appears to be tracking suffix, ignored')
+        console.log('❌ Order ID appears to be tracking suffix, ignored:', orderId)
       }
     } else {
       data.orderId = 'N/A'
@@ -321,63 +330,144 @@ function parseShopeeAWB(text: string): any {
     }
 
     // Extract Address from "Recipient Details" or "Buyer Details" section or scattered text
+    // Enhanced for fragmented format like TAMAN SENTOSA + No.42 JALAN SENTOSA 4, TAMAN SENTOSA, Kupang, Baling, Kedah
+
+    let addressParts: string[] = []
+
     // Pattern 1: From "Buyer Details (FWD)" - extract the full address text
     let addressMatch = text.match(/Buyer Details\s*\(FWD\)[^\n]*?\s+([^,]+,\s*[^,]+,\s*\d{5},\s*[^,]+,\s*[^,]+)/i)
+    if (addressMatch) addressParts.push(addressMatch[1])
 
     if (!addressMatch) {
       // Pattern 2: Alternative Buyer Details pattern - extract everything after "Buyer Details (FWD)"
       addressMatch = text.match(/Buyer Details\s*\(FWD\)[^\n]*?\s+([^,]+[^]*?)(?=\s*(?:NDD|N\s*D\s*D|SPXMY|Enjoy|HVI))/is)
+      if (addressMatch) addressParts.push(addressMatch[1])
     }
 
     if (!addressMatch) {
       // Pattern 3: From Recipient Details
       addressMatch = text.match(/Recipient Details[^]*?Address[:\s]+(.+?)(?=\s*Postcode[:\s]*\d{5}|Enjoy|Scan)/is)
+      if (addressMatch) addressParts.push(addressMatch[1])
     }
 
-    if (!addressMatch) {
-      // Pattern 4: Malaysian address with "No." format
+    // Pattern 4: Extract TAMAN/KAMPUNG/LOT location names (fragmented format)
+    const locationMatches = text.match(/\b(TAMAN|KAMPUNG|LOT|PT)\s+[A-Z\s]+/gi)
+    if (locationMatches) {
+      locationMatches.forEach(loc => {
+        const cleanLoc = loc.trim()
+        if (cleanLoc.length > 3 && !addressParts.includes(cleanLoc)) {
+          addressParts.push(cleanLoc)
+        }
+      })
+    }
+
+    // Pattern 5: Extract street addresses with "No." format
+    const streetMatches = text.match(/No\.?\s*\d+[^,\n]*JALAN[^,\n]*/gi)
+    if (streetMatches) {
+      streetMatches.forEach(street => {
+        const cleanStreet = street.trim()
+        if (cleanStreet.length > 5 && !addressParts.includes(cleanStreet)) {
+          addressParts.push(cleanStreet)
+        }
+      })
+    }
+
+    // Pattern 6: Extract city/state combinations (like "Kupang, Baling, Kedah")
+    const cityMatches = text.match(/[A-Z][a-z]+(?:,\s*[A-Z][a-z]+){1,2}/gi)
+    if (cityMatches) {
+      cityMatches.forEach(city => {
+        const cleanCity = city.trim()
+        if (!cleanCity.includes('Order') && !cleanCity.includes('Shopee') && !addressParts.includes(cleanCity)) {
+          addressParts.push(cleanCity)
+        }
+      })
+    }
+
+    // Pattern 7: Malaysian address with "No." format (fallback)
+    if (addressParts.length === 0) {
       addressMatch = text.match(/\b(No\.\s*\d+,?\s+[^,]+,\s+[^,]+,\s+[^,]+,\s+[A-Z][a-z]+)\b/i)
+      if (addressMatch) addressParts.push(addressMatch[1])
     }
 
-    if (!addressMatch) {
-      // Pattern 4: Address: label pattern
+    // Pattern 8: Address: label pattern (fallback)
+    if (addressParts.length === 0) {
       addressMatch = text.match(/Address[:\s]+(.+?)(?=\s*Postcode[:\s]*\d{5})/is)
+      if (addressMatch) addressParts.push(addressMatch[1])
     }
 
-    if (!addressMatch) {
-      // Pattern 5: Between Buyer/Seller Details and tracking
+    // Pattern 9: Between Buyer/Seller Details and tracking (fallback)
+    if (addressParts.length === 0) {
       addressMatch = text.match(/(?:Buyer Details|Seller Details)[^]*?(No\.\s*\d+[^]*?)(?=SPXMY|Enjoy|Postcode)/is)
+      if (addressMatch) addressParts.push(addressMatch[1])
     }
 
-    if (!addressMatch) {
-      // Pattern 6: Relaxed - text after Address:
+    // Pattern 10: Relaxed - text after Address: (fallback)
+    if (addressParts.length === 0) {
       addressMatch = text.match(/Address[:\s]+([^\n]{10,200})/is)
+      if (addressMatch) addressParts.push(addressMatch[1])
     }
 
-    if (addressMatch) {
-      let addr = addressMatch[1]
-        .replace(/Name[:\s]+[A-Za-z\s]+/gi, '') // Remove any "Name:" labels
-        .replace(/Order ID[:\s]+[A-Z0-9]+/gi, '') // Remove Order ID if mixed in
-        .replace(/Postcode[:\s]+\d{5}/gi, '') // Remove Postcode label
-        .replace(/SPXMY\d+[A-Z]?/gi, '') // Remove tracking numbers
-        .replace(/Enjoy.*?items!/gi, '') // Remove promo text
-        .replace(/\n/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim()
+    // Process address parts if we found any
+    if (addressParts.length > 0) {
+      // Filter and clean address parts
+      const filteredParts = addressParts.filter(part =>
+        part &&
+        part.length > 2 &&
+        !part.includes('Recipient') &&
+        !part.includes('Sender') &&
+        !part.includes('Order ID') &&
+        !part.includes('SPXMY') &&
+        !part.includes('Shopee') &&
+        !part.includes('Standard') &&
+        !part.includes('Express') &&
+        !part.includes('Enjoy') &&
+        !part.includes('items!')
+      )
 
-      // Clean up if address starts with labels
-      addr = addr.replace(/^(Name|Order ID|Postcode|Address)[:\s]+/i, '')
+      // If we have individual address parts, combine them
+      if (filteredParts.length > 1) {
+        // Clean each part
+        const cleanedParts = filteredParts.map(part =>
+          part
+            .replace(/Name[:\s]+[A-Za-z\s]+/gi, '') // Remove any "Name:" labels
+            .replace(/Order ID[:\s]+[A-Z0-9]+/gi, '') // Remove Order ID if mixed in
+            .replace(/Postcode[:\s]+\d{5}/gi, '') // Remove Postcode label
+            .replace(/SPXMY\d+[A-Z]?/gi, '') // Remove tracking numbers
+            .replace(/Enjoy.*?items!/gi, '') // Remove promo text
+            .replace(/\n/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim()
+        ).filter(part => part.length > 2)
 
-      // Remove trailing unwanted text
-      addr = addr.replace(/\s*(Postcode|Enjoy|Scan|Track|powered|delivery).*$/i, '')
-
-      // Only accept if address is reasonable length
-      if (addr.length >= 10 && addr.length <= 300) {
-        data.customerAddress = addr
-        console.log('✅ Address found:', data.customerAddress)
+        // Remove duplicates and join
+        const uniqueParts = [...new Set(cleanedParts)]
+        data.customerAddress = uniqueParts.join(', ')
+        console.log('✅ Address assembled from parts:', data.customerAddress)
       } else {
-        data.customerAddress = 'Address too short or invalid'
-        console.log('❌ Address invalid length:', addr.length, 'chars')
+        // Single address part
+        let addr = filteredParts[0]
+          .replace(/Name[:\s]+[A-Za-z\s]+/gi, '') // Remove any "Name:" labels
+          .replace(/Order ID[:\s]+[A-Z0-9]+/gi, '') // Remove Order ID if mixed in
+          .replace(/Postcode[:\s]+\d{5}/gi, '') // Remove Postcode label
+          .replace(/SPXMY\d+[A-Z]?/gi, '') // Remove tracking numbers
+          .replace(/Enjoy.*?items!/gi, '') // Remove promo text
+          .replace(/\n/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim()
+
+        // Clean up if address starts with labels
+        addr = addr.replace(/^(Name|Order ID|Postcode|Address)[:\s]+/i, '')
+        // Remove trailing unwanted text
+        addr = addr.replace(/\s*(Postcode|Enjoy|Scan|Track|powered|delivery).*$/i, '')
+
+        // Only accept if address is reasonable length
+        if (addr.length >= 10 && addr.length <= 300) {
+          data.customerAddress = addr
+          console.log('✅ Address found:', data.customerAddress)
+        } else {
+          data.customerAddress = 'Address too short or invalid'
+          console.log('❌ Address invalid length:', addr.length, 'chars')
+        }
       }
     } else {
       // Fallback: Try to extract from the full text using a more relaxed pattern

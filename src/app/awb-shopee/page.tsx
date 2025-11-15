@@ -103,7 +103,8 @@ export default function ShopeeAWBPage() {
         fullText += pageText + '\n'
       }
 
-      console.log('📄 Shopee PDF Text:', fullText.substring(0, 500))
+      console.log('📄 Shopee PDF Full Text:', fullText)
+      console.log('📏 Text length:', fullText.length)
 
       // Parse Shopee AWB
       const data: ShopeeOrder = {
@@ -124,11 +125,17 @@ export default function ShopeeAWBPage() {
         seller: 'Shopee Seller'
       }
 
-      // Order ID - specific pattern for Shopee format
-      // Pattern: "Order ID: 251102NP3KRMTS" or "Order ID: 21060"
+      // Order ID - enhanced pattern for Shopee format
+      // Pattern: "Order ID: 251113M2SQ0GTF" or just floating order numbers like "251113M2SQ0GTF"
       let match = fullText.match(/Order ID[:\s]*([A-Z0-9]+)/i)
       if (match) {
         data.orderId = match[1].trim()
+      } else {
+        // Try pattern for 15-digit alphanumeric order codes (like 251113M2SQ0GTF)
+        match = fullText.match(/\b\d{6}[A-Z0-9]{7,}\b/g)
+        if (match && match.length > 0) {
+          data.orderId = match[0].trim()
+        }
       }
 
       // Date - pattern: DD-MM-YYYY at start of text
@@ -158,16 +165,17 @@ export default function ShopeeAWBPage() {
       match = fullText.match(/0\d{9,10}/)
       if (match) data.customerPhone = match[0]
 
-      // Address - SPECIFIC for Shopee format
-      // Pattern: Text between "Address:" and "Postcode:" in Recipient section
-      // Example: "TJ 23- KN, T194 KG PARIT KEROMA (BELAKANG DEWAN RUMAH HUJUNG) AYER BALOI, Ayer Baloi, Pontian, Johor"
+      // Address - ENHANCED for fragmented Shopee format
+      // Pattern: Address text may be scattered throughout the PDF
+      // Example: "TAMAN SENTOSA" and "No.42 JALAN SENTOSA 4, TAMAN SENTOSA, Kupang, Baling, Kedah"
 
-      // First try to get Recipient address (after tracking number, before postcode)
+      let addressParts: string[] = []
+
+      // Method 1: Try to get Recipient address (after tracking number, before postcode)
       const recipientPattern = /SPXMY\d+[A-Z]?\s+(.*?)(?=Postcode[:\s]*\d{5})/is
       match = fullText.match(recipientPattern)
 
       if (match) {
-        // Clean up the address
         let addr = match[1]
           // Remove extra SPX tracking if repeated
           .replace(/SPXMY\d+[A-Z]?/gi, '')
@@ -180,15 +188,73 @@ export default function ShopeeAWBPage() {
           .replace(/\s+/g, ' ')
           .trim()
 
-        data.customerAddress = addr
-      } else {
-        // Fallback: Get everything after "Address:" keyword
+        if (addr) addressParts.push(addr)
+      }
+
+      // Method 2: Look for specific address patterns
+      // Pattern 1: "TAMAN SENTOSA" type location names
+      const locationPattern = /[A-Z\s]+(?:TAMAN|KAMPUNG|LOT|PT)[A-Z\s]*/gi
+      const locationMatches = fullText.match(locationPattern)
+      if (locationMatches) {
+        locationMatches.forEach(loc => {
+          loc = loc.trim()
+          if (loc.length > 3 && !loc.includes('SPXMY') && !loc.includes('ORDER')) {
+            if (!addressParts.includes(loc)) addressParts.push(loc)
+          }
+        })
+      }
+
+      // Method 3: Look for street address patterns
+      // Pattern: "No.42 JALAN SENTOSA 4" type addresses
+      const streetPattern = /No\.?\s*\d+[^,\n]*JALAN[^,\n]*/gi
+      const streetMatches = fullText.match(streetPattern)
+      if (streetMatches) {
+        streetMatches.forEach(street => {
+          street = street.trim()
+          if (street.length > 5 && !addressParts.includes(street)) {
+            addressParts.push(street)
+          }
+        })
+      }
+
+      // Method 4: Look for city/state combinations
+      // Pattern: "Kupang, Baling, Kedah" type locations
+      const cityPattern = /[A-Z][a-z]+(?:,\s*[A-Z][a-z]+){1,2}/gi
+      const cityMatches = fullText.match(cityPattern)
+      if (cityMatches) {
+        cityMatches.forEach(city => {
+          city = city.trim()
+          if (!city.includes('Order') && !city.includes('Shopee') && !addressParts.includes(city)) {
+            addressParts.push(city)
+          }
+        })
+      }
+
+      // Method 5: Fallback - get everything after "Address:" keyword
+      if (addressParts.length === 0) {
         match = fullText.match(/Address[:\s]+(.*?)(?=Name:|Postcode:|Order ID:|$)/is)
         if (match) {
-          data.customerAddress = match[1]
-            .replace(/\s+/g, ' ')
-            .trim()
+          addressParts.push(match[1].replace(/\s+/g, ' ').trim())
         }
+      }
+
+      // Combine all address parts, prioritizing the most complete ones
+      if (addressParts.length > 0) {
+        // Filter out common non-address items and deduplicate
+        const filteredParts = addressParts.filter(part =>
+          part &&
+          part.length > 2 &&
+          !part.includes('Recipient') &&
+          !part.includes('Sender') &&
+          !part.includes('Order ID') &&
+          !part.includes('SPXMY') &&
+          !part.includes('Shopee') &&
+          !part.includes('Standard') &&
+          !part.includes('Express')
+        )
+
+        // Join with comma, remove duplicates
+        data.customerAddress = [...new Set(filteredParts)].join(', ')
       }
 
       // Add postcode if found and not already in address
@@ -204,7 +270,12 @@ export default function ShopeeAWBPage() {
         data.courier = 'Shopee Standard'
       }
 
-      console.log('✅ Shopee extracted:', data)
+      // Enhanced debugging
+      console.log('🔍 Order ID extraction result:', data.orderId)
+      console.log('🔍 Tracking extraction result:', data.tracking)
+      console.log('🔍 Address extraction result:', data.customerAddress)
+      console.log('🔍 Name extraction result:', data.customerName)
+      console.log('✅ Final Shopee extracted data:', data)
       return data
     } catch (error) {
       console.error('❌ Error extracting Shopee AWB:', error)
