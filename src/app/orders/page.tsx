@@ -8,6 +8,7 @@ import Card from '@/components/ui/Card'
 import { fetchOrders, OrderData } from '@/lib/firestore'
 import OrdersAnalytics from './analytics'
 import { exportToExcel, exportToPDF, exportFilteredData, exportDateRange } from '@/lib/exportUtils'
+import ThemeToggle from '@/components/ThemeToggle'
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<OrderData[]>([])
@@ -238,9 +239,12 @@ export default function OrdersPage() {
                 <span className="text-xs text-gray-600">View All Orders</span>
               </div>
             </Link>
-            <Link href="/dashboard">
-              <Button variant="secondary" size="sm">← Back to Dashboard</Button>
-            </Link>
+            <div className="flex items-center gap-3">
+              <ThemeToggle />
+              <Link href="/dashboard">
+                <Button variant="secondary" size="sm">← Back to Dashboard</Button>
+              </Link>
+            </div>
           </div>
         </div>
       </nav>

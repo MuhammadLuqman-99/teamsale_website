@@ -8,12 +8,25 @@
     --foreground: 0 0 0;
   }
 
+  .dark {
+    --background: 0 0 0;
+    --foreground: 255 255 255;
+  }
+
   body {
-    @apply bg-white text-gray-900 antialiased;
+    @apply bg-white text-gray-900 antialiased transition-colors duration-300;
+  }
+
+  .dark body {
+    @apply bg-gray-900 text-gray-100;
   }
 
   * {
     @apply border-gray-200;
+  }
+
+  .dark * {
+    @apply border-gray-700;
   }
 }
 
@@ -32,6 +45,10 @@
     @apply bg-white rounded-2xl shadow-soft border border-gray-100 transition-all duration-300;
   }
 
+  .dark .card-apple {
+    @apply bg-gray-800 border-gray-700;
+  }
+
   .card-apple:hover {
     @apply shadow-soft-lg transform -translate-y-1;
   }
@@ -41,8 +58,16 @@
     @apply bg-gradient-to-br from-white via-gray-50 to-gray-100;
   }
 
+  .dark .gradient-soft {
+    @apply bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900;
+  }
+
   .gradient-primary {
     @apply bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50;
+  }
+
+  .dark .gradient-primary {
+    @apply bg-gradient-to-br from-blue-900/50 via-indigo-900/50 to-purple-900/50;
   }
 
   /* Apple-style button */
@@ -54,8 +79,16 @@
     @apply btn-apple bg-blue-500 text-white hover:bg-blue-600 hover:shadow-lg;
   }
 
+  .dark .btn-apple-primary {
+    @apply bg-blue-600 hover:bg-blue-700;
+  }
+
   .btn-apple-secondary {
     @apply btn-apple bg-white text-gray-900 hover:bg-gray-50 border border-gray-200;
+  }
+
+  .dark .btn-apple-secondary {
+    @apply bg-gray-800 text-gray-100 hover:bg-gray-700 border-gray-600;
   }
 
   /* Smooth scrolling */
@@ -74,8 +107,16 @@
   @apply bg-gray-100 rounded-full;
 }
 
+.dark ::-webkit-scrollbar-track {
+  @apply bg-gray-800;
+}
+
 ::-webkit-scrollbar-thumb {
   @apply bg-gray-300 rounded-full hover:bg-gray-400;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  @apply bg-gray-600 hover:bg-gray-500;
 }
 
 /* Animations */
@@ -103,6 +144,104 @@
 
 .animate-pulse-slow {
   animation: pulse-slow 2s ease-in-out infinite;
+}
+
+/* Dark Mode Utility Classes - Global Automatic Styling */
+.dark {
+  /* Text Colors - Automatic Inheritance */
+  .text-gray-900 { @apply text-gray-100 !important; }
+  .text-gray-800 { @apply text-gray-200 !important; }
+  .text-gray-700 { @apply text-gray-300 !important; }
+  .text-gray-600 { @apply text-gray-400 !important; }
+  .text-gray-500 { @apply text-gray-500 !important; }
+  .text-gray-400 { @apply text-gray-600 !important; }
+  .text-gray-300 { @apply text-gray-700 !important; }
+  .text-gray-200 { @apply text-gray-800 !important; }
+  .text-gray-100 { @apply text-gray-900 !important; }
+
+  /* Background Colors - Automatic Inheritance */
+  .bg-white { @apply bg-gray-900 !important; }
+  .bg-gray-50 { @apply bg-gray-900 !important; }
+  .bg-gray-100 { @apply bg-gray-800 !important; }
+  .bg-gray-200 { @apply bg-gray-700 !important; }
+  .bg-gray-300 { @apply bg-gray-600 !important; }
+  .bg-gray-400 { @apply bg-gray-500 !important; }
+  .bg-gray-500 { @apply bg-gray-400 !important; }
+  .bg-gray-600 { @apply bg-gray-300 !important; }
+  .bg-gray-700 { @apply bg-gray-200 !important; }
+  .bg-gray-800 { @apply bg-gray-100 !important; }
+  .bg-gray-900 { @apply bg-white !important; }
+
+  /* Border Colors - Automatic Inheritance */
+  .border-gray-100 { @apply border-gray-800 !important; }
+  .border-gray-200 { @apply border-gray-700 !important; }
+  .border-gray-300 { @apply border-gray-600 !important; }
+  .border-gray-400 { @apply border-gray-500 !important; }
+  .border-gray-500 { @apply border-gray-400 !important; }
+  .border-gray-600 { @apply border-gray-300 !important; }
+  .border-gray-700 { @apply border-gray-200 !important; }
+  .border-gray-800 { @apply border-gray-100 !important; }
+
+  /* Hover States - Automatic Inheritance */
+  .hover\:bg-gray-50:hover { @apply hover:bg-gray-800 !important; }
+  .hover\:bg-gray-100:hover { @apply hover:bg-gray-700 !important; }
+  .hover\:bg-gray-200:hover { @apply hover:bg-gray-600 !important; }
+  .hover\:bg-gray-300:hover { @apply hover:bg-gray-500 !important; }
+
+  .hover\:text-gray-900:hover { @apply hover:text-gray-100 !important; }
+  .hover\:text-gray-800:hover { @apply hover:text-gray-200 !important; }
+  .hover\:text-gray-700:hover { @apply hover:text-gray-300 !important; }
+  .hover\:text-gray-600:hover { @apply hover:text-gray-400 !important; }
+
+  /* Navigation and Interactive Elements */
+  .glass {
+    @apply bg-gray-900/80 border-gray-700/50;
+  }
+
+  .glass-dark {
+    @apply bg-gray-900/90 border-gray-700/50;
+  }
+
+  /* Form Elements */
+  input, textarea, select {
+    @apply bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-400;
+  }
+
+  input:focus, textarea:focus, select:focus {
+    @apply border-blue-500 ring-blue-500/20;
+  }
+
+  /* Tables */
+  table {
+    @apply text-gray-100;
+  }
+
+  th {
+    @apply bg-gray-800 text-gray-200 border-gray-700;
+  }
+
+  td {
+    @apply border-gray-700;
+  }
+
+  /* Code Blocks */
+  code, pre {
+    @apply bg-gray-800 text-gray-100 border-gray-700;
+  }
+
+  /* Links */
+  a {
+    @apply text-blue-400 hover:text-blue-300;
+  }
+
+  /* Gradients for Dark Mode */
+  .gradient-soft {
+    background: linear-gradient(to bottom right, #111827, #1f2937, #111827);
+  }
+
+  .gradient-primary {
+    background: linear-gradient(to bottom right, #1e3a8a50, #312e81, #581c8750);
+  }
 }
 
 /* Mobile Optimizations */

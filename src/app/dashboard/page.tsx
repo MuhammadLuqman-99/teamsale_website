@@ -28,6 +28,7 @@ import {
   getQuickDateRange,
   formatCurrency
 } from '@/lib/metrics'
+import ThemeToggle from '@/components/ThemeToggle'
 
 const MONTHLY_TARGET = 15000
 
@@ -207,6 +208,7 @@ export default function DashboardPage() {
               <Link href="/team-members" className="text-gray-600 hover:text-gray-900 transition-colors">
                 Team
               </Link>
+              <ThemeToggle />
             </div>
 
             {/* Mobile Menu Button */}
@@ -258,6 +260,10 @@ export default function DashboardPage() {
               <Link href="/team-members" className="block px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">
                 Team Members
               </Link>
+              <div className="px-4 py-2 flex items-center justify-between">
+                <span className="text-sm font-medium text-gray-700">Theme</span>
+                <ThemeToggle />
+              </div>
               <div className="px-4 py-2 text-xs text-gray-500 border-t border-gray-200 mt-2 pt-2">
                 Last Updated: {mounted ? currentTime : '--:--:--'}
               </div>
