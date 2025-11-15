@@ -9,6 +9,11 @@ import { fetchOrders, OrderData } from '@/lib/firestore'
 import OrdersAnalytics from './analytics'
 import { exportToExcel, exportToPDF, exportFilteredData, exportDateRange } from '@/lib/exportUtils'
 import ThemeToggle from '@/components/ThemeToggle'
+import TabNavigation from './components/TabNavigation'
+import OverviewTab from './components/OverviewTab'
+import CustomersTab from './components/CustomersTab'
+import ProductsTab from './components/ProductsTab'
+import TeamsTab from './components/TeamsTab'
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<OrderData[]>([])
@@ -17,6 +22,7 @@ export default function OrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<OrderData | null>(null)
   const [showDetails, setShowDetails] = useState(false)
   const [showExportOptions, setShowExportOptions] = useState(false)
+  const [activeTab, setActiveTab] = useState('overview')
 
   // Advanced filtering states
   const [dateRange, setDateRange] = useState<{ start: string; end: string }>({
@@ -225,6 +231,13 @@ export default function OrdersPage() {
     }
   }
 
+  const tabs = [
+    { id: 'overview', label: 'Overview', icon: '📊' },
+    { id: 'customers', label: 'Customers', icon: '👥' },
+    { id: 'products', label: 'Products', icon: '👕' },
+    { id: 'teams', label: 'Teams', icon: '👔' },
+  ]
+
   return (
     <div className="min-h-screen gradient-soft">
       <nav className="glass sticky top-0 z-50 border-b border-gray-200/50">
@@ -344,7 +357,40 @@ export default function OrdersPage() {
             </div>
           </div>
 
-          {/* Summary Cards */}
+          {/* Tab Navigation */}
+          <TabNavigation tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
+
+          {/* Tab Content */}
+          {activeTab === 'overview' && (
+            <OverviewTab
+              orders={orders}
+              filteredOrders={filteredOrders}
+              onViewDetails={viewOrderDetails}
+            />
+          )}
+
+          {activeTab === 'customers' && (
+            <CustomersTab
+              orders={orders}
+              filteredOrders={filteredOrders}
+            />
+          )}
+
+          {activeTab === 'products' && (
+            <ProductsTab
+              orders={orders}
+              filteredOrders={filteredOrders}
+            />
+          )}
+
+          {activeTab === 'teams' && (
+            <TeamsTab
+              orders={orders}
+              filteredOrders={filteredOrders}
+            />
+          )}
+
+          {/* OLD SUMMARY CARDS - KEEPING FOR REFERENCE
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <Card className="p-4">
               <div className="flex items-center">
@@ -623,12 +669,11 @@ export default function OrdersPage() {
             )}
           </Card>
 
-          {/* Results Count */}
+          {/* MOVED TO TABS - Results Count & Orders Table
           <div className="mb-4 text-sm text-gray-600">
             Showing {filteredOrders.length} of {orders.length} orders
           </div>
 
-          {/* Orders Table */}
           <Card className="overflow-hidden">
             {loading ? (
               <div className="flex items-center justify-center py-20">
@@ -755,15 +800,16 @@ export default function OrdersPage() {
               </div>
             )}
           </Card>
+          END OF OLD CONTENT MOVED TO TABS */}
         </motion.div>
 
       {/* Order Details Modal */}
       {showDetails && selectedOrder && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white dark:bg-slate-800 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-start mb-4">
-                <h2 className="text-2xl font-bold text-gray-900">Order Details</h2>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-slate-50">Order Details</h2>
                 <button
                   onClick={closeOrderDetails}
                   className="text-gray-400 hover:text-gray-600"
@@ -775,8 +821,8 @@ export default function OrdersPage() {
               </div>
 
               {/* Order Summary */}
-              <div className="bg-gray-50 rounded-lg p-4 mb-6">
-                <h3 className="font-semibold text-gray-900 mb-3">Order Summary</h3>
+              <div className="bg-gray-50 dark:bg-slate-900 rounded-lg p-4 mb-6">
+                <h3 className="font-semibold text-gray-900 dark:text-slate-50 mb-3">Order Summary</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-gray-600">Invoice Number</p>
