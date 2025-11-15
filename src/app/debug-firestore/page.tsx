@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { collection, getDocs, getFirestore, doc, getDoc, addDoc } from 'firebase/firestore'
 import Card from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
+import Link from 'next/link'
 
 export default function DebugFirestore() {
   const [debugData, setDebugData] = useState<any>({})
@@ -129,7 +130,7 @@ export default function DebugFirestore() {
               {loading && <p className="text-gray-600">Loading debug data...</p>}
 
               {Object.keys(debugData).length === 0 && !loading && (
-                <p className="text-gray-500">Click "Debug Firestore Collections" to see data</p>
+                <p className="text-gray-500">Click &quot;Debug Firestore Collections&quot; to see data</p>
               )}
 
               {debugData.error && (
@@ -203,9 +204,11 @@ export default function DebugFirestore() {
         </Card>
 
         <div className="mt-8">
-          <Button href="/orders" variant="secondary">
-            ← Back to Orders Dashboard
-          </Button>
+          <Link href="/orders">
+            <Button variant="secondary">
+              ← Back to Orders Dashboard
+            </Button>
+          </Link>
         </div>
       </div>
     </div>
