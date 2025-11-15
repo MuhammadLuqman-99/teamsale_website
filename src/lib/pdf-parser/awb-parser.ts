@@ -121,9 +121,9 @@ async function extractTextFromPDF(pdfBase64: string): Promise<string> {
       }
 
       pdf = await loadingTask.promise
-    } catch (pdfLoadError) {
+    } catch (pdfLoadError: any) {
       console.error('❌ PDF loading error:', pdfLoadError)
-      throw new Error(`Failed to load PDF: ${pdfLoadError.message || 'Invalid PDF format'}`)
+      throw new Error(`Failed to load PDF: ${pdfLoadError?.message || 'Invalid PDF format'}`)
     }
 
     console.log('📑 PDF loaded successfully. Pages:', pdf.numPages)
