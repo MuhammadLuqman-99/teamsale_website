@@ -6,6 +6,8 @@ import Link from 'next/link'
 import Button from '@/components/ui/Button'
 import Card from '@/components/ui/Card'
 import { fetchOrders, OrderData } from '@/lib/firestore'
+import OrdersAnalytics from './analytics'
+import { exportToExcel, exportToPDF, exportFilteredData, exportDateRange } from '@/lib/exportUtils'
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<OrderData[]>([])
@@ -13,6 +15,7 @@ export default function OrdersPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedOrder, setSelectedOrder] = useState<OrderData | null>(null)
   const [showDetails, setShowDetails] = useState(false)
+  const [showExportOptions, setShowExportOptions] = useState(false)
 
   // Advanced filtering states
   const [dateRange, setDateRange] = useState<{ start: string; end: string }>({
@@ -28,6 +31,19 @@ export default function OrdersPage() {
   useEffect(() => {
     loadOrders()
   }, [])
+
+  // Close export dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showExportOptions && !(event.target as Element).closest('.relative')) {
+        setShowExportOptions(false)
+      }
+    }
+    document.addEventListener('click', handleClickOutside)
+    return () => {
+      document.removeEventListener('click', handleClickOutside)
+    }
+  }, [showExportOptions])
 
   const loadOrders = async () => {
     setLoading(true)
@@ -173,30 +189,39 @@ export default function OrdersPage() {
     .sort((a, b) => b.totalRevenue - a.totalRevenue)
     .slice(0, 5)
 
-  const exportToCSV = () => {
-    const headers = ['Tarikh', 'Customer', 'PO/Invoice', 'Team Sale', 'Phone', 'Jenis Order', 'Total (RM)', 'Platform']
-    const csvData = filteredOrders.map(order => [
-      order.tarikh,
-      order.nama_customer,
-      order.nombor_po_invoice,
-      order.team_sale,
-      order.nombor_phone,
-      order.jenis_order,
-      order.total_rm,
-      order.platform
-    ])
+  const handleExport = (format: 'csv' | 'pdf') => {
+    if (filteredOrders.length === 0) {
+      alert('No orders to export')
+      return
+    }
 
-    const csvContent = [
-      headers.join(','),
-      ...csvData.map(row => row.join(','))
-    ].join('\n')
+    if (format === 'pdf') {
+      exportToPDF(filteredOrders, `orders_${new Date().toISOString().split('T')[0]}.pdf`)
+    } else {
+      exportToExcel(filteredOrders, `orders_${new Date().toISOString().split('T')[0]}.csv`)
+    }
+    setShowExportOptions(false)
+  }
 
-    const blob = new Blob([csvContent], { type: 'text/csv' })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `orders-${new Date().toISOString().split('T')[0]}.csv`
-    a.click()
+  const handleExportFiltered = () => {
+    const filters = {
+      dateRange: dateRange.start && dateRange.end ? `${dateRange.start} to ${dateRange.end}` : null,
+      platform: selectedPlatform !== 'all' ? selectedPlatform : null,
+      team: selectedTeam !== 'all' ? selectedTeam : null,
+      minAmount: minAmount || null,
+      maxAmount: maxAmount || null,
+      search: searchTerm || null
+    }
+
+    exportFilteredData(filteredOrders, filters)
+    setShowExportOptions(false)
+  }
+
+  const handleExportDateRange = () => {
+    if (dateRange.start && dateRange.end) {
+      exportDateRange(orders, dateRange.start, dateRange.end)
+      setShowExportOptions(false)
+    }
   }
 
   return (
@@ -238,12 +263,69 @@ export default function OrdersPage() {
                 </svg>
                 Refresh
               </Button>
-              <Button variant="secondary" onClick={exportToCSV}>
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-                Export CSV
-              </Button>
+
+              {/* Enhanced Export Button with Dropdown */}
+              <div className="relative">
+                <Button
+                  variant="secondary"
+                  onClick={() => setShowExportOptions(!showExportOptions)}
+                  className="flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10V6m0 0l-3 3m3-3v3m0 6h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Export
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </Button>
+
+                {showExportOptions && (
+                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                    <div className="py-1">
+                      <button
+                        onClick={() => handleExport('csv')}
+                        className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2"
+                      >
+                        <span className="text-green-600">📊</span>
+                        Export as CSV
+                      </button>
+                      <button
+                        onClick={() => handleExport('pdf')}
+                        className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2"
+                      >
+                        <span className="text-red-600">📄</span>
+                        Export as PDF
+                      </button>
+                      <hr className="my-1 border-gray-200" />
+                      <button
+                        onClick={handleExportFiltered}
+                        className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2"
+                        disabled={filteredOrders.length === orders.length}
+                      >
+                        <span className="text-blue-600">🔍</span>
+                        Export Filtered Data
+                        {filteredOrders.length < orders.length && (
+                          <span className="text-xs text-gray-500">({filteredOrders.length} of {orders.length})</span>
+                        )}
+                      </button>
+                      <button
+                        onClick={handleExportDateRange}
+                        className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2"
+                        disabled={!dateRange.start || !dateRange.end}
+                      >
+                        <span className="text-purple-600">📅</span>
+                        Export Date Range
+                        {dateRange.start && dateRange.end && (
+                          <span className="text-xs text-gray-500">
+                            ({dateRange.start} to {dateRange.end})
+                          </span>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
               <Link href="/debug-firestore">
                 <Button variant="secondary">
                   <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -348,6 +430,11 @@ export default function OrdersPage() {
                 ))}
               </div>
             </Card>
+          )}
+
+          {/* Analytics Section */}
+          {!loading && orders.length > 0 && (
+            <OrdersAnalytics orders={orders} filteredOrders={filteredOrders} />
           )}
 
           {/* Search Bar & Filters */}
