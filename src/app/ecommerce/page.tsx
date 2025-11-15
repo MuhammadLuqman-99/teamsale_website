@@ -146,7 +146,12 @@ export default function EcommercePage() {
     setSuccess(false)
 
     try {
+      console.log('🔍 Orders to be saved:', extractedOrders)
+      console.log('🔍 First order details:', extractedOrders[0])
+
       const { successCount, errorCount, createdCount, updatedCount } = await saveOrdersToFirebase(extractedOrders)
+
+      console.log('✅ Save result:', { successCount, errorCount, createdCount, updatedCount })
 
       setExtractedOrders([]) // Clear after successful save
       setSuccess(true)
@@ -163,6 +168,7 @@ export default function EcommercePage() {
       }, 5000)
 
     } catch (error: any) {
+      console.error('❌ Error saving orders:', error)
       setErrorMessage(error.message || 'Gagal menyimpan order')
     } finally {
       setProcessing(false)

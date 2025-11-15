@@ -164,9 +164,21 @@ export function parseCSV(csvText: string, source: string): OrderData[] {
     }
 
     if (isValid && order.nombor_po_invoice) {
+      // Ensure all required fields are present
       order.tarikh = order.tarikh || new Date().toISOString().split('T')[0];
       order.source = `csv_${source}`;
+      order.team_sale = order.team_sale || 'Unknown';
+      order.platform = order.platform || 'Unknown';
+      order.nama_customer = order.nama_customer || 'Unknown Customer';
+      order.jenis_order = order.jenis_order || order.code_kain || 'Unknown Product';
+      order.total_rm = order.total_rm || 0;
+      order.code_kain = order.code_kain || 'N/A';
+      order.nombor_phone = order.nombor_phone || 'N/A';
+
+      console.log('✅ Parsed order:', order);
       orders.push(order as OrderData);
+    } else {
+      console.log('❌ Invalid order or missing PO/Invoice:', order);
     }
   });
 
@@ -382,6 +394,8 @@ export async function saveOrdersToFirebase(orders: OrderData[]): Promise<{
   createdCount: number;
   updatedCount: number;
 }> {
+  console.log('📤 About to save orders to Firebase:', orders.length, 'orders');
+
   // Use upsertOrders for bulk operation
   const { upsertOrders } = await import('./firestore');
   const result = await upsertOrders(orders);
@@ -390,6 +404,8 @@ export async function saveOrdersToFirebase(orders: OrderData[]): Promise<{
   const updatedCount = result.updatedCount;
   const errorCount = result.errorCount;
   const successCount = createdCount + updatedCount;
+
+  console.log('📊 Upsert results:', { createdCount, updatedCount, errorCount, successCount });
 
   if (result.errors.length > 0) {
     console.error('Errors during bulk upsert:', result.errors);

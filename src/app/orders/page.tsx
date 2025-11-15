@@ -19,7 +19,9 @@ export default function OrdersPage() {
   const loadOrders = async () => {
     setLoading(true)
     try {
+      console.log('🔄 Loading orders...')
       const data = await fetchOrders()
+      console.log('📦 Orders loaded:', data.length)
       setOrders(data)
     } catch (error) {
       console.error('Error loading orders:', error)
@@ -97,6 +99,12 @@ export default function OrdersPage() {
               <p className="text-gray-600">View and manage all orders</p>
             </div>
             <div className="flex gap-3">
+              <Button variant="secondary" onClick={loadOrders}>
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Refresh
+              </Button>
               <Button variant="secondary" onClick={exportToCSV}>
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
