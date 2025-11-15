@@ -13,6 +13,7 @@ import {
   MarketingData,
   SalesTeamData
 } from '@/lib/firestore'
+import ThemeToggle from '@/components/ThemeToggle'
 import {
   calculatePowerMetrics,
   getQuickDateRange,
@@ -325,6 +326,9 @@ export default function BalanceMonitorPage() {
                 }`}></div>
               </button>
             </div>
+
+            {/* Theme Toggle */}
+            <ThemeToggle />
           </div>
         </div>
       </nav>
