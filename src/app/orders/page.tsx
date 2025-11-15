@@ -58,7 +58,34 @@ export default function OrdersPage() {
       console.log('🔄 Loading orders...')
       const data = await fetchOrders()
       console.log('📦 Orders loaded:', data.length)
-      setOrders(data)
+
+      // Check for duplicates
+      const uniqueInvoices = new Set(data.map(o => o.nombor_po_invoice))
+      console.log('📋 Unique invoices:', uniqueInvoices.size)
+
+      if (data.length !== uniqueInvoices.size) {
+        console.warn('⚠️ Duplicate orders detected!', {
+          total: data.length,
+          unique: uniqueInvoices.size,
+          duplicates: data.length - uniqueInvoices.size
+        })
+
+        // Remove duplicates - keep only the latest one (first in array since sorted by date desc)
+        const seen = new Set()
+        const deduped = data.filter(order => {
+          if (seen.has(order.nombor_po_invoice)) {
+            console.log('🔄 Removing duplicate:', order.nombor_po_invoice)
+            return false
+          }
+          seen.add(order.nombor_po_invoice)
+          return true
+        })
+
+        console.log('✅ After deduplication:', deduped.length)
+        setOrders(deduped)
+      } else {
+        setOrders(data)
+      }
     } catch (error) {
       console.error('Error loading orders:', error)
     } finally {
